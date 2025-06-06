@@ -1,0 +1,10 @@
+[
+  {
+    "cmd": "test",
+    "respon": "Online bang ✅"
+  },
+  {
+    "cmd": "tep",
+    "respon": "hi"
+  }
+]
