@@ -9136,13 +9136,13 @@ break
 //=========================================
     
 case 'chatowner' : case 'pmowner' : case 'chatown' : case 'cs' : {
-if (!text) return m.reply('Ketik {prefix+command} teksnya')
+if (!text) return m.reply(`Ketik ${prefix+command} teksnya`)
 let Obj = global.owner
   Sky.sendMessage(Obj + "@s.whatsapp.net", {
     text: `*Ada pesan baru dari:@${m.sender.split("@")[0]}*\n*Isinya:${text}*`,
     contextInfo: { isForwarded: true }
   }, { quoted: m })
-await Sky.sendMessage(m.chat, { text: `Berhasil mengirim pesan ke owner!\nTunggu info lebih lanjut di saluran bot`}, {quoted:m})
+await Sky.sendMessage(m.chat, { text: `Berhasil mengirim pesan ke owner!\nTunggu info lebih lanjut di saluran bot: https://whatsapp.com/channel/0029Vb9R8pgAzNbzE3K8QP39`}, {quoted:m})
 }
 break
     
@@ -13325,6 +13325,7 @@ break
 //=======================================================
     
 case 'htv' : {
+if (!isCreator) return Reply("This feature is currently broken and will never be fixed.")
 const api = `https://api.vreden.my.id/api/hentaivid`
 const response = await fetch(api);
 const json = await response.json();
@@ -14291,6 +14292,933 @@ case 'ceksambutan': {
     m.reply(replyMsg);
 }
 break;
+//=======================================================
+   
+case 'resizevideo': case 'resizevid': {
+  const fs = require('fs')
+  const path = require('path')
+  const { spawn } = require('child_process')
+  const { downloadMediaMessage } = require('@whiskeysockets/baileys')
+  const tmpFolder = path.join(__dirname, 'tmp')
+  if (!fs.existsSync(tmpFolder)) fs.mkdirSync(tmpFolder)
+  const qmsg = m.quoted
+  const isQuotedVideo = qmsg?.mimetype?.startsWith('video') || qmsg?.type === 'videoMessage' || qmsg?.mtype === 'videoMessage'
+  if (!isQuotedVideo) {
+    return m.reply(`*Kamu harus reply ke video!*\nContoh:\nBalas video lalu ketik:\n${prefix+command}\natau\n${prefix+command} 640`
+)
+  }
+  const standardWidths = [360, 480, 640, 720, 1080]
+  await Sky.sendMessage(m.chat, {react:  {text: '🕒', key: m.key}})
+  try {
+    const videoBuffer = await downloadMediaMessage(qmsg, 'buffer', {}, { reuploadRequest: Sky.updateMedia })
+    const filename = `${Date.now()}`
+    const inputPath = path.join(tmpFolder, `${filename}.mp4`)
+    const outputPath = path.join(tmpFolder, `${filename}_resized.mp4`)
+    fs.writeFileSync(inputPath, videoBuffer)
+    const getResolution = () => new Promise((resolve, reject) => {
+      const ffprobe = spawn('ffprobe', [
+        '-v', 'error',
+        '-select_streams', 'v:0',
+        '-show_entries', 'stream=width,height',
+        '-of', 'csv=p=0:s=x',
+        inputPath
+      ])
+      let data = ''
+      ffprobe.stdout.on('data', chunk => data += chunk)
+      ffprobe.on('close', () => {
+        const [width, height] = data.trim().split('x').map(Number)
+        if (!width || !height) return reject(new Error('Gagal mendapatkan resolusi video'))
+        resolve({ width, height })
+      })
+      ffprobe.on('error', reject)
+    })
+    const res = await getResolution()
+    const originalWidth = res.width
+    const originalHeight = res.height
+    const aspectRatio = originalWidth / originalHeight
+    let inputWidth = args[0] ? parseInt(args[0].trim()) : 1080
+    if (isNaN(inputWidth)) inputWidth = 1080
+    if (!args[0]) {
+      let sizeListText = standardWidths
+        .map(w => {
+          const h = Math.round(w / aspectRatio)
+          return `• ${w}x${h}`
+        }).join('\n')
+      return m.reply(`Ukuran asli video: *${originalWidth}x${originalHeight}*\n\nDaftar ukuran resize yang tersedia (tinggi menyesuaikan rasio):\n${sizeListText}\n\nContoh penggunaan:\nresizevideo 360\nresizevideo 640\nresizevideo 1080`)
+    }
+    let newWidth = inputWidth > originalWidth ? originalWidth : inputWidth
+    let newHeight = Math.round(newWidth / aspectRatio)
+    await m.reply( `Sedang meresize video ke *${newWidth}x${newHeight}*...` )
+    await new Promise((resolve, reject) => {
+      const ffmpeg = spawn('ffmpeg', ['-i', inputPath, '-vf', `scale=${newWidth}:${newHeight}`, '-preset', 'fast', outputPath])
+      ffmpeg.on('close', code => code === 0 ? resolve() : reject(new Error('FFmpeg gagal meresize video')))
+    })
+    await Sky.sendMessage(m.chat, {
+      video: fs.readFileSync(outputPath),
+      mimetype: 'video/mp4',
+      caption: `Berhasil resize video ke *${newWidth}x${newHeight}*`
+    }, { quoted: m })
+    fs.unlinkSync(inputPath)
+    fs.unlinkSync(outputPath)
+    await Sky.sendMessage(m.chat, {react:  {text: '✅', key: m.key}})
+  } catch (err) {
+    console.error(err)
+    m.reply(`Gagal resize video:\n\n${err.message}`)
+    await Sky.sendMessage(m.chat, {react:  {text: '❌', key: m.key}})
+  }
+}
+break
+   
+//=======================================================
+
+case 'getbisnis': case 'getbusiness': {
+  const moment = require('moment-timezone');
+  let input = m.quoted ? m.quoted.sender : text || m.sender;
+  input = input.replace(/[^+\d]/g, '');
+  let target;
+  if (input.startsWith('+')) {
+    target = input.slice(1).replace(/^0+/, '') + '@s.whatsapp.net';
+  } else if (input.startsWith('0')) {
+    target = '62' + input.slice(1) + '@s.whatsapp.net';
+  } else if (input.startsWith('62')) {
+    target = input + '@s.whatsapp.net';
+  } else if (input.includes('@s.whatsapp.net')) {
+    target = input;
+  } else {
+    target = '62' + input + '@s.whatsapp.net';
+  }
+    await Sky.sendMessage(m.chat, {react:  {text: '🕒', key: m.key}})
+  try {
+    const profile = await Sky.getBusinessProfile(target);
+    const name = await Sky.getName(target); 
+    const pfp = await Sky.profilePictureUrl(target, 'image').catch(() => null);
+    const desc = profile.description || 'Tidak ada deskripsi bisnis.';
+    const category = profile.category || 'Tidak diketahui';
+    const website = profile.website || 'Tidak tersedia';
+    const address = profile.address || 'Tidak dicantumkan';
+    const email = profile.email || 'Tidak dicantumkan';
+    const caption = `*📇 PROFIL BISNIS*\n\n` +
+      `*👤 Nama:* ${name}\n` +
+      `*🏢 Kategori:* ${category}\n` +
+      `*🌐 Website:* ${website}\n` +
+      `*📍 Alamat:* ${address}\n` +
+      `*✉️ Email:* ${email}\n\n` +
+      `*📝 Deskripsi:*\n${desc}`;
+    if (pfp) {
+      await Sky.sendMessage(m.chat, {
+        image: { url: pfp },
+        caption,
+      }, { quoted: m });
+    } else {
+      m.reply(caption);
+    }
+   await Sky.sendMessage(m.chat, {react:  {text: '✅', key: m.key}})
+  } catch (err) {
+    console.error(err);
+    m.reply('Itu Bukan Akun Bisnis.');
+    await Sky.sendMessage(m.chat, {react:  {text: '❌', key: m.key}})
+  }
+}
+break
+
+//=======================================================
+
+case 'murotal': {
+const axios = require('axios')
+  if (!args[0]) {
+    try {
+      let { data } = await axios.get('https://gist.githubusercontent.com/Bell575/382f3dd393f45eaac298d5b845112258/raw/dbcdc554a51e06a13795a2ff1fe15b85f55e8d9d/List%2520Surah')
+      return m.reply(
+        `Cara Pakai : murotal [Nomor Surah]\n*Example : .murotal 144*\n\n*List Surah :*\n\n${data}\n\n`
+      )
+    } catch (e) {
+      return m.reply('Gagal Ambil List Surah')
+    }
+  }
+await Sky.sendMessage(m.chat, {react:  {text: '🕒', key: m.key}})
+  try {
+    let { data } = await axios.get(`https://cloudku.us.kg/api/murotal/surah?id=${args[0]}`)
+    let res = data.result
+    if (!res) return m.reply('Surah Gak Ada')
+
+    let teks =
+      `Surah : ${res.name_id}\n\n` +
+      `Nomor : ${res.number}\n` +
+      `Nama Latin : ${res.name_en}\n` +
+      `Nama Arab : ${res.name_long}\n` +
+      `Jumlah Ayat : ${res.number_of_verses}\n` +
+      `Tempat Turun : ${res.revelation_id} (${res.revelation_en})\n` +
+      `Urutan Wahyu : ${res.sequence}\n` +
+      `Arti : ${res.translation_id} (${res.translation_en})\n\n` +
+      `Tafsir :\n${res.tafsir}`
+
+    await m.reply(teks)
+    await Sky.sendMessage(m.chat, {
+      audio: { url: res.audio_url },
+      mimetype: 'audio/mpeg',
+      ptt: true
+    }, { quoted: m })
+await Sky.sendMessage(m.chat, {react:  {text: '✅', key: m.key}})
+  } catch (e) {
+    m.reply('Failed to fetch surah data. Make sure the surah number is correct')
+    await Sky.sendMessage(m.chat, {react:  {text: '❌', key: m.key}})
+  }
+}
+break;
+ 
+//=======================================================
+
+case "tambah":
+        {
+          if (!text.includes("+"))
+            return m.reply(
+              `Gunakan dengan cara ${
+                prefix + command
+              } *angka* + *angka*\n\n_Contoh_\n\n${prefix + command} 1+2`
+            );
+          arg = args.join(" ");
+          atas = arg.split("+")[0];
+          bawah = arg.split("+")[1];
+          await Sky.sendMessage(m.chat, {react:  {text: '🕒', key: m.key}})
+          try {
+          var nilai_one = Number(atas);
+          var nilai_two = Number(bawah);
+          m.reply(`${nilai_one + nilai_two}`);
+          await Sky.sendMessage(m.chat, {react:  {text: '✅', key: m.key}})
+          } catch (e) {
+          m.reply(`✋😐🤚`)
+          await Sky.sendMessage(m.chat, {react:  {text: '❌', key: m.key}})
+          }
+        }
+        break;
+      case "kurang":
+        {
+          if (!text.includes("-"))
+            return m.reply(
+              `Gunakan dengan cara ${
+                prefix + command
+              } *angka* - *angka*\n\n_Contoh_\n\n${prefix + command} 1-2`
+            );
+          arg = args.join(" ");
+          atas = arg.split("-")[0];
+          bawah = arg.split("-")[1];
+          await Sky.sendMessage(m.chat, {react:  {text: '🕒', key: m.key}})
+          try {
+          var nilai_one = Number(atas);
+          var nilai_two = Number(bawah);
+          m.reply(`${nilai_one - nilai_two}`);
+         await Sky.sendMessage(m.chat, {react:  {text: '✅', key: m.key}})
+            } catch (e) {
+           await Sky.sendMessage(m.chat, {react:  {text: '❌', key: m.key}})
+          m.reply(`✋😐🤚`)
+          }
+        }
+        break;
+      case "kali":
+        {
+          if (!text.includes("*"))
+            return m.reply(
+              `Gunakan dengan cara ${
+                prefix + command
+              } *angka* * *angka*\n\n_Contoh_\n\n${prefix + command} 1*2`
+            );
+          arg = args.join(" ");
+          atas = arg.split("*")[0];
+          bawah = arg.split("*")[1];
+          await Sky.sendMessage(m.chat, {react:  {text: '🕒', key: m.key}})
+          try {
+          var nilai_one = Number(atas);
+          var nilai_two = Number(bawah);
+          m.reply(`${nilai_one * nilai_two}`);
+          await Sky.sendMessage(m.chat, {react:  {text: '✅', key: m.key}})
+           } catch (e) {
+          await Sky.sendMessage(m.chat, {react:  {text: '❌', key: m.key}})
+          m.reply(`✋😐🤚`)
+          }
+        }
+        break;
+      case "bagi":
+        {
+          if (!text.includes("/"))
+            return m.reply(
+              `Gunakan dengan cara ${
+                prefix + command
+              } *angka* / *angka*\n\n_Contoh_\n\n${prefix + command} 1/2`
+            );
+          arg = args.join(" ");
+          atas = arg.split("/")[0];
+          bawah = arg.split("/")[1];
+          await Sky.sendMessage(m.chat, {react:  {text: '🕒', key: m.key}})
+          try {
+          var nilai_one = Number(atas);
+          var nilai_two = Number(bawah);
+          m.reply(`${nilai_one / nilai_two}`);
+          await Sky.sendMessage(m.chat, {react:  {text: '✅', key: m.key}})
+           } catch (e) {
+          m.reply(`✋😐🤚`)
+         await Sky.sendMessage(m.chat, {react:  {text: '❌', key: m.key}})
+          }
+        }
+        break;
+//=======================================================
+
+case 'ambillinkgc' : case 'clinkgc': {
+if (!text) return m.reply(`Mana id grup nya\nContoh: ${prefix+command} 1234@g.us\n\n untuk dapetin id grup ketik aja *${prefix}cekidgc* di dalam grup`)
+await Sky.sendMessage(m.chat, {react:  {text: '🕒', key: m.key}})
+try {
+const code = await Sky.groupInviteCode(text)
+m.reply(`Link grup berhasil di buat!:https://chat.whatsapp.com/${code}`)
+await Sky.sendMessage(m.chat, {react:  {text: '✅', key: m.key}})
+} catch (e) {
+m.reply(`Pastikan id grup benar karena: ${e}`)
+await Sky.sendMessage(m.chat, {react:  {text: '❌', key: m.key}})
+}
+}
+break
+    
+//=======================================================
+
+case 'transfermarkt': {
+  if (!text) return m.reply('Masukin nama pemain nya\nContoh: .transfermarkt Ole Romeny')
+
+  await Sky.sendMessage(m.chat, { react: { text: '🕒', key: m.key } })
+
+  const res = await fetch(`https://zenz.biz.id/search/transfermarkt?query=${encodeURIComponent(text)}`)
+  const json = await res.json()
+
+  if (!json.status || !json.data) return m.reply('Data pemain lu gaada wok')
+
+  const data = json.data
+  const caption = `
+Nama          : ${data.name}
+Nomor Punggung: ${data.shirtNumber}
+Tanggal Lahir : ${data.birthdate}
+Kebangsaan    : ${data.nationality}
+Tinggi        : ${data.height}
+Kaki Dominan  : ${data.foot}
+Posisi        : ${data.position}
+Agen          : ${data.agent}
+Kontrak Hingga: ${data.contractUntil}
+Market Value  : ${data.marketValue}
+Klub          : ${data.club}
+Kompetisi     : ${data.league}
+  `.trim()
+const pp = await getBuffer(data.photo)
+  await Sky.sendMessage(m.chat, {image: pp, caption}, {quoted: m})
+  await Sky.sendMessage(m.chat, { react: { text: '✅', key: m.key } })
+  }
+  break
+
+//=======================================================
+    
+/* *[ Fitur Unsplash ]*
+Type? Case
+Req: +62 815-xxxx-xxxx
+Scrape: https://whatsapp.com/channel/0029VbANq6v0VycMue9vPs3u/134
+*/
+
+case 'unsplash': {
+    if (!text) return m.reply('Masukkan kata kunci pencarian!\nContoh: unsplash nature');
+    const axios = require('axios');
+    await Sky.sendMessage(m.chat, {react:  {text: '🕒', key: m.key}})
+    function formatDate(isoString) {
+        const date = new Date(isoString);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${day}-${month}-${year} ${hours}:${minutes}`;
+    }
+    async function unsplashSearch(query) {
+        try {
+            const { data } = await axios.get(`https://unsplash.com/napi/search/photos?page=${Math.floor(Math.random() * 100) + 1}&per_page=20&query=${encodeURIComponent(query)}`);
+            return data.results.map(res => ({
+                title: res.alt_description || 'No Title',
+                likes: res.likes,
+                is_premium: res.premium,
+                is_plus: res.plus,
+                author: {
+                    name: res.user.name,
+                    username: res.user.username,
+                    avatar: res.user.profile_image.large,
+                    url: `https://unsplash.com/@${res.user.username}`
+                },
+                thumbnail: res.urls,
+                created_at: formatDate(res.created_at),
+                updated_at: formatDate(res.updated_at),
+                downloadUrl: res.links.download,
+                url: res.links.html
+            }));
+        } catch (e) {
+            m.reply(`Eror because: ${e}`)
+            await Sky.sendMessage(m.chat, {react:  {text: '❌', key: m.key}})
+            console.error(e);
+            return [];
+        }
+    }
+    let results = await unsplashSearch(text);
+    if (!results.length) return m.reply('❌ Tidak ada hasil ditemukan dari Unsplash.');
+    let teks = `📷 *Hasil Pencarian Unsplash*\n🔎 Kata kunci: *${text}*\n\n`;
+    results.slice(0, 5).forEach((r, i) => {
+        teks += `📌 *${r.title}*\n👍 Likes: ${r.likes}\n👤 Author: ${r.author.name} (@${r.author.username})\n🗓️ Upload: ${r.created_at}\n🔗 Link: ${r.url}\n📥 Download: ${r.downloadUrl}\n\n`;
+    });
+    teks+= `📥 Ketik ${prefix}getft link_download untuk mengunduh foto\nContoh: ${prefix}getft https://unsplash.com/photos/tNDvFkxkBHo/download?ixid=M3wxMjA3fDB8MXxzZWFyY2h8NTIyfHxuYXR1cmV8ZW58MHx8fHwxNzUwNDExOTE1fDA\n📝 Ada beberapa foto yang tidak bisa di download alias premium, jadi anda perlu ke link unsplashnya langsung (bukan ke link download)`
+    m.reply(teks);
+await Sky.sendMessage(m.chat, {react:  {text: '✅', key: m.key}})
+}
+break
+    
+//=======================================================
+    
+case 'pakustad': {
+  if (!text) return m.reply(`Contoh:\n${prefix + command} Makan Sambil Kuyang Bisa Gak Pak Ustad`)
+  await Sky.sendMessage(m.chat, {react:  {text: '🕒', key: m.key}})
+   try {
+  await Sky.sendMessage(m.chat, {
+    image: { url: 'https://api.taka.my.id/tanya-ustad?quest=' + encodeURIComponent(text) }
+  }, { quoted: m })
+ await Sky.sendMessage(m.chat, {react:  {text: '✅', key: m.key}})
+ } catch (e) {
+ m.reply(`API Eror Because: ${e}`)
+ await Sky.sendMessage(m.chat, {react:  {text: '❌', key: m.key}})
+ console.log(e)
+ }
+}
+break
+
+//=======================================================
+   
+case 'pakustad2': {
+  if (!text) return m.reply(`Contoh:\n${prefix + command} Makan Sambil Kuyang Bisa Gak Pak Ustad`)
+  await Sky.sendMessage(m.chat, {react:  {text: '🕒', key: m.key}})
+   try {
+  await Sky.sendMessage(m.chat, {
+    image: { url: 'https://flowfalcon.dpdns.org/imagecreator/pustaz?text=' + encodeURIComponent(text) }
+  }, { quoted: m })
+ await Sky.sendMessage(m.chat, {react:  {text: '✅', key: m.key}})
+ } catch (e) {
+ m.reply(`API Eror Because: ${e}`)
+ await Sky.sendMessage(m.chat, {react:  {text: '❌', key: m.key}})
+ console.log(e)
+ }
+}
+break
+
+//=======================================================
+    
+ case 'pakustad3': {
+  if (!text) return m.reply(`Contoh:\n${prefix + command} Makan Sambil Kuyang Bisa Gak Pak Ustad`)
+  await Sky.sendMessage(m.chat, {react:  {text: '🕒', key: m.key}})
+   try {
+  await Sky.sendMessage(m.chat, {
+    image: { url: 'https://api.taka.my.id/pak-ustadv2?text=' + encodeURIComponent(text) }
+  }, { quoted: m })
+ await Sky.sendMessage(m.chat, {react:  {text: '✅', key: m.key}})
+ } catch (e) {
+ m.reply(`API Eror Because: ${e}`)
+ await Sky.sendMessage(m.chat, {react:  {text: '❌', key: m.key}})
+ console.log(e)
+ }
+}
+break
+
+//=======================================================
+    
+ case 'wastalk': {
+let moment = require('moment-timezone');
+let PhoneNum = require('awesome-phonenumber');
+
+let regionNames = new Intl.DisplayNames(['id'], { type: 'region' });
+
+    let num = m.quoted?.sender || m.mentionedJid?.[0] || text;
+    if (!num) return m.reply(`• *Contoh :* ${prefix + command} @tag / 628xxx`)
+await Sky.sendMessage(m.chat, {react:  {text: '🕒', key: m.key}})
+    num = num.replace(/\D/g, '') + '@s.whatsapp.net';
+
+    let existsCheck = await Sky.onWhatsApp(num).catch(() => []);
+    if (!existsCheck[0]?.exists) return m.reply('🚩 Pengguna tidak ada')
+
+    let img = await Sky.profilePictureUrl(num, 'image').catch(() => './src/avatar_contact.png');
+    let bio = await Sky.fetchStatus(num).catch(() => null);
+    let business = await Sky.getBusinessProfile(num).catch(() => null);
+
+    let name;
+    try {
+        name = await Sky.getName(num);
+    } catch {
+        name = 'Tidak diketahui';
+    }
+
+    let format = new PhoneNum(`+${num.split('@')[0]}`);
+    let country = regionNames.of(format.getRegionCode('international')) || 'Tidak diketahui';
+
+    let htki = '–––––––––––––––––––––––––––––––';
+    let htka = '–––––––––––––––––––––––––––––––';
+
+    let wea = `${htki} Stalking WhatsApp ${htka}\n\n` +
+        `*° Negara :* ${country.toUpperCase()}\n` +
+        `*° Nama :* ${name}\n` +
+        `*° Format Nomor :* ${format.getNumber('international')}\n` +
+        `*° Url Api :* wa.me/${num.split('@')[0]}\n` +
+        `*° Sebutan :* @${num.split('@')[0]}\n` +
+        `*° Status :* ${bio?.status || '-'}\n` +
+        `*° Tanggal Status :* ${bio?.setAt ? moment(bio.setAt).locale('id').format('LL') : '-'}`;
+
+    if (business) {
+        wea += `\n\n${htki} Stalking Bisnis WhatsApp ${htka}\n\n` +
+            `*° BusinessId :* ${business.wid}\n` +
+            `*° Website :* ${business.website || '-'}\n` +
+            `*° Email :* ${business.email || '-'}\n` +
+            `*° Kategori :* ${business.category || '-'}\n` +
+            `*° Alamat :* ${business.address || '-'}\n` +
+            `*° Zona Waktu :* ${business.business_hours?.timezone || '-'}\n` +
+            `*° Deskripsi :* ${business.description || '-'}`;
+    } else {
+        wea += `\n\n*Akun WhatsApp Standar*`;
+    }
+
+    try {
+        await Sky.sendMessage(m.chat, { image: { url: img }, caption: wea, mentions: [num] }, { quoted: m });
+    } catch {
+        m.reply(wea);
+    }
+   await Sky.sendMessage(m.chat, {react:  {text: '✅', key: m.key}})
+};
+break
+    
+//=======================================================
+    
+case 'toviourl': {
+const axios = require('axios')
+const FormData = require('form-data')
+ async function uploadMedia(buffer, filename) {
+    const form = new FormData()
+    form.append('file', buffer, filename)
+
+    const { data } = await axios.post('https://cdn.vioo.my.id/upload', form, {
+      headers: {
+        ...form.getHeaders(),
+        'Accept': 'application/json'
+      }
+    })
+
+    return data
+  }
+
+  try {
+    let q = m.quoted || m
+    let mime = (q.msg || q).mimetype || ''
+    if (!mime) m.reply(`Ketik ${prefix+command} dengan membalas media`)
+await Sky.sendMessage(m.chat, {react:  {text: '🕒', key: m.key}})
+    const buffer = await q.download()
+    if (buffer.length > 50 * 1024 * 1024) throw 'Max Size 50MB'
+
+    const ext = mime.split(';')[0].split('/')[1]
+    const filename = `Anu_${Date.now()}.${ext}`
+
+    const result = await uploadMedia(buffer, filename)
+    m.reply(`Nih: ${result.data.url}`)
+await Sky.sendMessage(m.chat, {react:  {text: '✅', key: m.key}})
+  } catch (e) {
+    m.reply(typeof e === 'string' ? e : e.message)
+await Sky.sendMessage(m.chat, {react:  {text: '❌', key: m.key}})
+  }
+}
+break;
+    
+//=======================================================
+    
+/*
+📌 Nama Fitur: Ocr [ optical character recognition ]
+🏷️ Type : Case
+🔗 Sumber : https://whatsapp.com/channel/0029Vb6Zs8yEgGfRQWWWp639
+✍️ Convert By ZenzXD
+note : *ini gw convert dari eng ay, kalau eror fix sendiri okey :v*
+*/
+case 'ocr': {
+if (!/image/.test(mime)) return m.reply(example("dengan kirim/reply foto"))
+  try {
+    await Sky.sendMessage(m.chat, {
+      react: {
+        text: '🕒',
+        key: m.key
+      }
+    })
+let media = await Sky.downloadAndSaveMediaMessage(qmsg)
+const { ImageUploadService } = require('node-upload-images')
+const service = new ImageUploadService('pixhost.to');
+let { directLink } = await service.uploadFromBinary(fs.readFileSync(media), 'Rafzbot.png');
+let imageUrl = directLink.toString()
+    let data = await fetch(`https://zenz.biz.id/tools/ocr?url=${encodeURIComponent(imageUrl)}`)
+    await fs.unlinkSync(media)
+    let hasil = await data.json()
+    await Sky.sendMessage(m.chat, {
+      react: {
+        text: '✅',
+        key: m.key
+      }
+    })
+    m.reply(`${hasil.result}`)
+  } catch (err) {
+    m.reply(typeof err === 'string' ? err : err.message || 'terjadi kesalahan saat memproses gambar')
+  }
+}
+break
+    
+//=======================================================
+    
+case 'dl': {
+ // --- Panggil semua modul yang dibutuhkan ---
+ const axios = require("axios");
+ const { URL } = require("url");
+ const path = require("path");
+
+ try {
+ const url = args[0];
+ if (!url) 
+ return m.reply("❓ Perintah tidak lengkap. Silakan masukkan URL yang ingin diunduh.\n\n*Contoh Penggunaan:*\n.dl https://www.tiktok.com/...\n\n✨ *Layanan yang Didukung:* ✨\n\n- 🎵 TikTok (Video & Slideshow Foto)\n- 📸 Instagram (Foto & Video)\n- 📘 Facebook\n- 🐦 Twitter / X\n- 📌 Pinterest\n- ☁️ SoundCloud\n- 🔥 MediaFire\n- 📦 Terabox\n- 🎥 YouTube (Video & Audio)\n\n*Untuk YouTube, gunakan format:*\n • `.dl <url>` *(untuk video, default)*\n • `.dl <url> mp3` *(untuk audio)*\n\n...dan link download langsung lainnya!");
+ 
+await Sky.sendMessage(m.chat, {react:  {text: '🕒', key: m.key}})
+ 
+ const botName = `${botname2}`;
+
+ // --- FUNGSI HELPER
+ function formatDuration(seconds) {
+ if (isNaN(seconds) || seconds < 0) return "N/A";
+ // Nama variabel 'minutes' dan 'secs' ditambahkan
+ const minutes = Math.floor(seconds / 60);
+ const secs = Math.floor(seconds % 60);
+ return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+ }
+
+ // --- RUTE UTAMA BERDASARKAN URL ---
+
+ // YouTube (Video & Audio)
+ if (url.includes("youtube.com") || url.includes("youtu.be")) {
+ const format = args[1]?.toLowerCase() || 'video';
+ if (format === 'mp3' || format === 'audio') {
+ await m.reply("⏳ Mengambil audio (MP3) dari YouTube...");
+ const apiUrl = `https://zenz.biz.id/downloader/ytmp3?url=${encodeURIComponent(url)}`;
+ const { data: apiResponse } = await axios.get(apiUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+ if (!apiResponse.status || !apiResponse.download_url) throw new Error("API ytmp3 Zenz tidak memberikan hasil yang valid.");
+ const { title, author, lengthSeconds, views, thumbnail, download_url } = apiResponse;
+ const caption = `╭─── 「 YOUTUBE AUDIO 」\n│\n├─ 🎵 *Judul:* ${title}\n├─ 👤 *Channel:* ${author}\n├─ ⏱️ *Durasi:* ${formatDuration(lengthSeconds)}\n├─ ▶️ *Dilihat:* ${views.toLocaleString('id-ID')}\n│\n╰─── 「 ${botName} 」`;
+ await Sky.sendMessage(m.chat, { image: { url: thumbnail }, caption: caption }, { quoted: m });
+ await Sky.sendMessage(m.chat, { audio: { url: download_url }, mimetype: 'audio/mpeg', fileName: `${title}.mp3` }, { quoted: m });
+ } else {
+ await m.reply("⏳ Mengambil video (MP4) dari YouTube...");
+ const apiUrl = `https://zenz.biz.id/downloader/ytmp4?url=${encodeURIComponent(url)}`;
+ const { data: apiResponse } = await axios.get(apiUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+ if (!apiResponse.status || !apiResponse.download_url) throw new Error("API ytmp4 Zenz tidak memberikan hasil yang valid.");
+ const { title, author, lengthSeconds, views, thumbnail, download_url } = apiResponse;
+ const caption = `╭─── 「 YOUTUBE VIDEO 」\n│\n├─ 🎬 *Judul:* ${title}\n├─ 👤 *Channel:* ${author}\n├─ ⏱️ *Durasi:* ${formatDuration(lengthSeconds)}\n├─ ▶️ *Dilihat:* ${views.toLocaleString('id-ID')}\n│\n╰─── 「 ${botName} 」`;
+ await Sky.sendMessage(m.chat, { 
+ video: { url: download_url }, 
+ caption: caption, 
+ mimetype: 'video/mp4',
+ jpegThumbnail: (await axios.get(thumbnail, { responseType: 'arraybuffer' })).data
+ }, { quoted: m });
+ }
+ 
+ // TikTok
+ } else if (url.includes("tiktok.com")) {
+ await m.reply("⏳ Mengambil data video TikTok...");
+ const apiUrl = `https://zenz.biz.id/downloader/tiktok?url=${encodeURIComponent(url)}`;
+ const { data: apiResponse } = await axios.get(apiUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+ const videoData = apiResponse?.result?.data;
+ if (!apiResponse.status || !videoData) throw new Error("API TikTok Zenz tidak memberikan data video yang valid.");
+ if (!videoData.play && (!videoData.images || videoData.images.length === 0)) throw new Error("Tidak ada media video atau gambar yang ditemukan.");
+ if (videoData.images && videoData.images.length > 0) {
+ const { title, author, music_info, images, music } = videoData;
+ const caption = `╭─── 「 TIKTOK SLIDESHOW 」\n│\n├─ 💬 *Caption:* ${title}\n├─ 👤 *Uploader:* ${author?.nickname || 'N/A'}\n├─ 🎵 *Sound:* ${music_info?.title || 'Original Sound'}\n│\n╰─── 「 ${botName} 」`;
+ await m.reply(caption);
+ for (const imageUrl of images) {
+ await Sky.sendMessage(m.chat, { image: { url: imageUrl } }, { quoted: m });
+ await new Promise(resolve => setTimeout(resolve, 1000));
+ }
+ if (music) {
+ await m.reply(`🎵 Mengirim sound dari TikTok...`);
+ await Sky.sendMessage(m.chat, { audio: { url: music }, mimetype: 'audio/mpeg' }, { quoted: m });
+ }
+ } else {
+ const { title, play: videoUrl, author, music_info, digg_count, play_count } = videoData;
+ const caption = `╭─── 「 TIKTOK VIDEO 」\n│\n├─ 💬 *Caption:* ${title}\n├─ 👤 *Uploader:* ${author?.nickname || 'N/A'}\n├─ ❤️ *Likes:* ${digg_count?.toLocaleString('id-ID') || 0}\n├─ ▶️ *Dilihat:* ${play_count?.toLocaleString('id-ID') || 0}\n│\n╰─── 「 ${botName} 」`;
+ await Sky.sendMessage(m.chat, { video: { url: videoUrl }, caption: caption }, { quoted: m });
+ }
+
+ // Instagram
+ } else if (url.includes("instagram.com")) {
+ await m.reply("⏳ Mengambil media Instagram...");
+ const apiUrl = `https://zenz.biz.id/downloader/instagram?url=${encodeURIComponent(url)}`;
+ const { data: apiResponse } = await axios.get(apiUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+ const result = apiResponse.result;
+ if (!apiResponse.status || !result) throw new Error("API Instagram Zenz tidak memberikan hasil yang valid.");
+ const { name: postCaption, username, images, videos } = result;
+ const mediaUrls = [...(images || []), ...(videos || [])];
+ if (mediaUrls.length === 0) throw new Error("Tidak ada media yang ditemukan di postingan Instagram.");
+ const caption = `╭─── 「 INSTAGRAM DOWNLOAD 」\n│\n├─ 💬 *Caption:* ${postCaption || 'Tanpa teks'}\n├─ 👤 *Username:* @${username || 'N/A'}\n│\n╰─── 「 ${botName} 」`;
+ let isFirstMedia = true;
+ for (const mediaUrl of mediaUrls) {
+ const isVideo = (new URL(mediaUrl).pathname).endsWith('.mp4');
+ await Sky.sendMessage(m.chat, { [isVideo ? 'video' : 'image']: { url: mediaUrl }, caption: isFirstMedia ? caption : '' }, { quoted: m });
+ isFirstMedia = false;
+ }
+ 
+ // Facebook
+ } else if (url.includes("facebook.com") || url.includes("fb.watch")) {
+ await m.reply("⏳ Mengambil video Facebook...");
+ const apiUrl = `https://zenz.biz.id/downloader/facebook?url=${encodeURIComponent(url)}`;
+ const { data: apiResponse } = await axios.get(apiUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+ if (!apiResponse.status || !apiResponse.videos) throw new Error("API Facebook Zenz tidak memberikan hasil yang valid.");
+ const { title = "Video Facebook", videos } = apiResponse;
+ const videoData = videos.hd || videos.sd;
+ if (!videoData || !videoData.url) throw new Error("Link download video tidak ditemukan.");
+ const caption = `╭─── 「 FACEBOOK DOWNLOAD 」\n│\n├─ 🎬 *Judul:* ${title}\n├─ ✨ *Kualitas:* ${videos.hd ? 'HD' : 'SD'}\n├─ 📦 *Ukuran:* ${videoData.size}\n│\n╰─── 「 ${botName} 」`;
+ await Sky.sendMessage(m.chat, { video: { url: videoData.url }, caption: caption }, { quoted: m });
+ 
+ // Twitter / X
+ } else if (url.includes("twitter.com") || url.includes("x.com")) {
+ await m.reply("⏳ Mengambil media dari Twitter/X...");
+ const apiUrl = `https://zenz.biz.id/downloader/twitter?url=${encodeURIComponent(url)}`;
+ const { data: apiResponse } = await axios.get(apiUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+ const result = apiResponse.result;
+ if (!apiResponse.status || !result?.media) throw new Error("API Twitter Zenz tidak memberikan hasil yang valid.");
+ const { title: tweetText = 'Tanpa Teks', author } = result.tweet;
+ const allMedia = [...result.media.photos, ...result.media.videos];
+ if (allMedia.length === 0) throw new Error("Tidak ada media di tweet ini.");
+ const caption = `╭─── 「 TWITTER DOWNLOAD 」\n│\n├─ 💬 *Tweet:* ${tweetText}\n├─ 👤 *Author:* @${author || 'N/A'}\n│\n╰─── 「 ${botName} 」`;
+ let isFirst = true;
+ for (const media of allMedia) {
+ await Sky.sendMessage(m.chat, { [media.type.startsWith('video') ? 'video' : 'image']: { url: media.url }, caption: isFirst ? caption : '' }, { quoted: m });
+ isFirst = false;
+ }
+ 
+ // Pinterest
+ } else if (url.includes("pinterest.com")) {
+ await m.reply("⏳ Mengambil media Pinterest...");
+ const apiUrl = `https://zenz.biz.id/downloader/pinterest?url=${encodeURIComponent(url)}`;
+ const { data: apiResponse } = await axios.get(apiUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+ const results = apiResponse.result;
+ if (!apiResponse.status || !Array.isArray(results) || results.length === 0) throw new Error("API Pinterest Zenz tidak memberikan hasil yang valid.");
+ const bestResult = results[0];
+ const mediaType = bestResult.tag === 'video' ? 'video' : 'image';
+ const caption = `╭─── 「 PINTEREST DOWNLOAD 」\n│\n├─ ✨ *Kualitas:* ${bestResult.quality || 'Terbaik'}\n├─ 🎞️ *Tipe:* ${mediaType.toUpperCase()}\n│\n╰─── 「 ${botName} 」`;
+ await Sky.sendMessage(m.chat, { [mediaType]: { url: bestResult.direct }, caption: caption }, { quoted: m });
+ 
+ // SoundCloud
+ } else if (url.includes("soundcloud.com")) {
+ await m.reply("⏳ Mengambil audio SoundCloud...");
+ const apiUrl = `https://zenz.biz.id/downloader/soundcloud?url=${encodeURIComponent(url)}`;
+ const { data: apiResponse } = await axios.get(apiUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+ if (!apiResponse.status || !apiResponse.audio_url) throw new Error("API SoundCloud Zenz tidak memberikan hasil yang valid.");
+ const { title = 'SoundCloud Audio', author = 'N/A', duration = 'N/A', thumbnail, audio_url } = apiResponse;
+ const caption = `╭─── 「 SOUNDCLOUD DOWNLOAD 」\n│\n├─ 🎵 *Judul:* ${title}\n├─ 👤 *Artis:* ${author}\n├─ ⏱️ *Durasi:* ${duration}\n│\n╰─── 「 ${botName} 」`;
+ await Sky.sendMessage(m.chat, { image: { url: thumbnail }, caption: caption }, { quoted: m });
+ await Sky.sendMessage(m.chat, { audio: { url: audio_url }, mimetype: 'audio/mpeg', fileName: `${title}.mp3` }, { quoted: m });
+
+ // MediaFire
+ } else if (url.includes("mediafire.com")) {
+ await m.reply("⏳ Mengambil file dari MediaFire...");
+ const apiUrl = `https://zenz.biz.id/downloader/mediafire?url=${encodeURIComponent(url)}`;
+ const { data: apiResponse } = await axios.get(apiUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+ const result = apiResponse.result;
+ if (!apiResponse.status || !result?.download) throw new Error("API MediaFire Zenz tidak memberikan hasil yang valid.");
+ const { filename, size, created, mimetype, download: link } = result;
+ const uploadDate = new Date(created || Date.now()).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
+ const caption = `╭─── 「 MEDIAFIRE DOWNLOAD 」\n│\n├─ 📂 *Nama:* ${filename || 'file'}\n├─ 📦 *Ukuran:* ${size || 'N/A'}\n├─ 📅 *Diunggah:* ${uploadDate}\n├─ 📑 *Tipe:* ${mimetype || 'application/octet-stream'}\n│\n╰─── 「 ${botName} 」`;
+ await Sky.sendMessage(m.chat, { document: { url: link }, mimetype: mimetype, fileName: filename, caption: caption }, { quoted: m });
+ 
+ // Terabox
+ } else if (url.includes("terabox.com")) {
+ await m.reply("⏳ Mengambil file dari Terabox...");
+ const apiUrl = `https://zenz.biz.id/downloader/terabox?url=${encodeURIComponent(url)}`;
+ const { data: apiResponse } = await axios.get(apiUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+ const result = apiResponse.result;
+ if (!apiResponse.status || !result?.direct_url) throw new Error("API Terabox Zenz tidak memberikan hasil yang valid.");
+ const { filename = 'terabox_video.mp4', size, thumb, direct_url: link } = result;
+ const sizeInMB = size ? (parseInt(size) / (1024 * 1024)).toFixed(2) + ' MB' : 'N/A';
+ const caption = `╭─── 「 TERABOX DOWNLOAD 」\n│\n├─ 📂 *Judul:* ${filename}\n├─ 📦 *Ukuran:* ${sizeInMB}\n│\n╰─── 「 ${botName} 」`;
+ await Sky.sendMessage(m.chat, { image: { url: thumb }, caption: caption }, { quoted: m });
+ await Sky.sendMessage(m.chat, { video: { url: link }, mimetype: 'video/mp4', fileName: filename }, { quoted: m });
+ 
+ } else {
+ // Fallback untuk link lain
+ await m.reply("⏳ Link tidak dikenali, mencoba mengunduh sebagai file generik...");
+ const { data: fileBuffer, headers } = await axios.get(url, { responseType: 'arraybuffer', headers: { 'User-Agent': 'Mozilla/5.0' } });
+ const mimeType = headers['content-type'] || 'application/octet-stream';
+ const fileName = path.basename(new URL(url).pathname) || `downloaded_file`;
+ const caption = `╭─── 「 FILE DOWNLOAD 」\n│\n├─ 📂 *Nama File:* ${fileName}\n├─ 📑 *Tipe:* ${mimeType}\n│\n╰─── 「 Direct Download 」`;
+ await Sky.sendMessage(m.chat, { document: fileBuffer, mimetype: mimeType, fileName: fileName, caption: caption }, { quoted: m });
+ }
+await Sky.sendMessage(m.chat, {react:  {text: '✅', key: m.key}})
+ } catch (error) {
+ console.error("Error pada command DL:", error);
+ m.reply(`❌ Gagal memproses permintaan.\n\n*Alasan:* ${error.message}`);
+ await Sky.sendMessage(m.chat, {react:  {text: '❌', key: m.key}})
+ }
+}
+break;
+ 
+//=======================================================
+
+case 'roblox': case 'roblox-stalk': {
+ if (!text) return m.reply('Masukkan username Roblox!\nContoh: .roblox Only_BFbloxfruits');
+ await Sky.sendMessage(m.chat, {react:  {text: '🕒', key: m.key}})
+ const username = encodeURIComponent(text.trim());
+ const apiKey = 'DitssGanteng';
+ const url = `https://api.ditss.cloud/stalk/roblox?username=${username}&apikey=${apiKey}`;
+ try {
+ let res = await fetch(url);
+ let data = await res.json();
+ if (!data.status || !data.result) return m.reply('Akun tidak ditemukan atau terjadi kesalahan.');
+ const r = data.result;
+ let teks = `*R O B L O X S T A L K*\n\n`;
+ teks += `*Display Name:* ${r.displayName}\n`;
+ teks += `*Username:* ${r.username}\n`;
+ teks += `*User ID:* ${r.userId}\n`;
+ teks += `*Bio:* ${r.bio || '-'}\n`;
+ teks += `*Tanggal Dibuat:* ${new Date(r.createdAt).toLocaleString('id-ID')}\n`;
+ teks += `*Banned:* ${r.isBanned ? 'Ya' : 'Tidak'}\n`;
+ teks += `*Friends:* ${r.friendsCount}\n`;
+ teks += `*Followers:* ${r.followersCount}\n`;
+ teks += `*Following:* ${r.followingCount}\n`;
+ if (r.groups.length > 0) {
+ teks += `\n*Group Joined:* (${r.groups.length} grup)\n`;
+ r.groups.slice(0, 5).forEach((g, i) => {
+ teks += `${i+1}. ${g.group.name} [${g.role.name}] - ${g.group.memberCount} member\n`;
+ });
+ }
+ let imageUrl = r.avatar; 
+ let caption = teks; 
+ await Sky.sendMessage(m.chat, {
+  image: { url: imageUrl },
+  caption: caption
+}, { quoted: m });
+await Sky.sendMessage(m.chat, {react:  {text: '✅', key: m.key}})
+ } catch (err) {
+ console.error(err);
+ m.reply('Gagal mengambil data. Coba lagi nanti.');
+ await Sky.sendMessage(m.chat, {react:  {text: '❌', key: m.key}})
+ }
+}
+break;
+
+//=======================================================
+    
+ /*
+ CASE TIKTOKSEARCH Cv By Rim Offc
+tq to siputzx api
+sumber: https://whatsapp.com/channel/0029Vap84RE8KMqfYnd0V41A
+
+grub belajar bot: https://chat.whatsapp.com/GdDaVo9FYin4KStIo6Psno
+
+jan bully bg, bru balik 
+*/
+
+case 'searchtiktok2':
+case 'stiktok2':
+case 'stt2': {
+  if (!text) return m.reply(`Gunakan dengan cara ${prefix + command} *query*\n\n_Contoh_\n\n${prefix + command} jj epep`)
+  await Sky.sendMessage(m.chat, { react: { text: "🕒", key: m.key } })
+
+  try {
+    let res = await fetch(`https://api.siputzx.my.id/api/s/tiktok?query=${encodeURIComponent(text)}`)
+    let json = await res.json()
+    if (!json.status || !json.data || json.data.length === 0) return m.reply('Video tidak ditemukan.')
+
+    let teks = '*📥 TikTok Search Result*\n\n'
+    teks += 'Ketik *.tt* <linknya> untuk mengambil video/photo.\n'
+    for (let i of json.data) { 
+      teks += `*Judul*    : ${i.title}\n`
+      teks += `*Video ID* : ${i.video_id}\n`
+      teks += `*User*     : ${i.author.unique_id}\n`
+      teks += `*Nickname* : ${i.author.nickname}\n`
+      teks += `*Durasi*   : ${i.duration} detik\n`
+      teks += `*Likes*    : ${i.digg_count}\n`
+      teks += `*Comments* : ${i.comment_count}\n`
+      teks += `*Shares*   : ${i.share_count}\n`
+      teks += `*Link*     : https://www.tiktok.com/@${i.author.unique_id}/video/${i.video_id}\n`
+      teks += `──────────────────────\n`
+      }
+      m.reply(teks)
+await Sky.sendMessage(m.chat, {react:  {text: '✅', key: m.key}})
+  } catch (error) {
+     await Sky.sendMessage(m.chat, {react:  {text: '❌', key: m.key}})
+    console.log(error)
+    m.reply(`Gagal mengambil hasil pencarian TikTok.\n\nTerjadi kesalahan atau hasil kosong.`)
+  }
+}
+break
+    
+//=======================================================
+    /*
+ CASE TIKTOKSEARCH Cv By Rim Offc
+tq to siputzx api
+sumber: https://whatsapp.com/channel/0029Vap84RE8KMqfYnd0V41A
+
+grub belajar bot: https://chat.whatsapp.com/GdDaVo9FYin4KStIo6Psno
+
+jan bully bg, bru balik 
+*/
+
+case 'searchtiktok2':
+case 'stiktok2':
+case 'stt2but': {
+  if (!text) return m.reply(`Gunakan dengan cara ${prefix + command} *query*\n\n_Contoh_\n\n${prefix + command} jj epep`);
+  await Sky.sendMessage(m.chat, { react: { text: "🕒", key: m.key } });
+
+  try {
+    let res = await fetch(`https://api.siputzx.my.id/api/s/tiktok?query=${encodeURIComponent(text)}`);
+    let json = await res.json();
+    if (!json.status || !json.data || json.data.length === 0) return m.reply('Video tidak ditemukan.');
+
+    let teks = '*📥 TikTok Search Result*\n\n';
+    teks += 'Ketik *.tt* untuk mengambil video/photo.\n';
+    let no = 1; // Inisialisasi counter urutan
+
+    let allbuttons = [];
+    for (let i of json.data) {
+      const link = `https://www.tiktok.com/@${i.author.unique_id}/video/${i.video_id}`;
+      
+      teks += `*Urutan* : ${no++}\n`; // Gunakan nilai 'no' saat ini untuk tampilan
+      teks += `*Judul* : ${i.title}\n`;
+      teks += `*Video ID* : ${i.video_id}\n`;
+      teks += `*User* : ${i.author.unique_id}\n`;
+      teks += `*Nickname* : ${i.author.nickname}\n`;
+      teks += `*Durasi* : ${i.duration} detik\n`;
+      teks += `*Likes* : ${i.digg_count}\n`;
+      teks += `*Comments* : ${i.comment_count}\n`;
+      teks += `*Shares* : ${i.share_count}\n`;
+      teks += `*Link* : ${link}\n`; // Menggunakan variabel 'link' yang sudah didefinisikan
+      teks += `──────────────────────\n`;
+       
+      allbuttons.push({
+        name: "cta_copy", // Asumsi 'cta_copy' didukung oleh implementasi Sky.sendMessage Anda
+        buttonParamsJson: JSON.stringify({
+             display_text: `Salin Link Urutan ${no}`, // Teks yang lebih jelas untuk tombol
+             id: link, // 'id' bisa berupa link itu sendiri
+             copy_code: link
+            })
+      });
+      no++; // Tingkatkan 'no' sekali setelah semua penggunaan di iterasi ini
+    }
+
+    const buttonMessage = {
+        text: teks,
+        footer: "Klik Tombol Dibawah Untuk Menyalin Tautan",
+        buttons: allbuttons
+    };
+   
+    await Sky.sendMessage(m.chat, buttonMessage, { quoted: m });
+    await Sky.sendMessage(m.chat, {react:  {text: '✅', key: m.key}});
+  } catch (error) {
+     await Sky.sendMessage(m.chat, {react:  {text: '❌', key: m.key}});
+    console.log(error); // Log error ke console untuk debugging
+    m.reply(`Gagal mengambil hasil pencarian TikTok.\n\nTerjadi kesalahan atau hasil kosong.`);
+  }
+}
+break; // Tambahkan titik koma di akhir blok case
 
     
 //=======================[ Akhir Case ]===============================
@@ -14322,7 +15250,7 @@ if (typeof evaled !== 'string') evaled = require('util').inspect(evaled)
 await m.reply(evaled)
 } catch (err) {
 await m.reply(String(err))
-anjay}}
+}}
 
 //================================================================================
 
