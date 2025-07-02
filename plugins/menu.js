@@ -360,7 +360,7 @@ isForwarded: true,
 forwardingScore: 9999999999999, 
 businessMessageForwardInfo: { businessOwnerJid: global.owner+"@s.whatsapp.net" }, forwardedNewsletterMessageInfo: { newsletterName: `${botname}`, newsletterJid: global.idSaluran }, 
 externalAdReply: {
-showAdAttribution: true,
+showAdAttribution: false,
 title: `${global.botname2} Menu`, 
 body: `© Powered By ${namaOwner}`, 
 thumbnailUrl: global.image.reply, 
