@@ -359,14 +359,16 @@ Hai @${m.sender.split("@")[0]}!
 * Ingin dapat pembaruan tentang bot ini? 
 Join saluran RAFZ BROADCAST: https://whatsapp.com/channel/0029Vb9R8pgAzNbzE3K8QP39
 
-* Butuh Preset AM? Malas ngedit? Join Saluran: https://whatsapp.com/channel/0029VbAUJuR4o7qJhpARGn1b
+* Butuh Preset AM? Malas ngedit? Join Saluran: 
+# Saluran 1: https://whatsapp.com/channel/0029VbAUJuR4o7qJhpARGn1b
+# Saluran 2 : https://whatsapp.com/channel/0029Vb6JHErJUM2YCOY4q73v
 Di situ berbagi berbagai kebutuhan ngedit di AM seperti CC,Preset 5MB/XML, Dll
 
 
  ╭─ *『 Thanks To 』*
  │ ALLAH Swt. (God)
  │ Skyzopedia (Base)
- │Penyedia Fitur Bot ( Di saluran)
+ │Penyedia Fitur Bot (Di saluran)
  │Pengguna Bot
  ╰────
 
