@@ -777,52 +777,6 @@ function logCommand(cmd) {
 }
 if (command) logCommand(command)
 
-
- //==============[ Autocorrect ]======================================================
-// auto koreksi
-if (isCmd) {
-    if (command) {
-        try {
-            const code = fs.readFileSync("case.js", "utf8");
-            var regex = /case\s+'([^']+)':/g;
-            var matches = [];
-            var match;
-            while ((match = regex.exec(code))) {
-                matches.push(match[1]);
-            }
-            const help = Object.values(matches)
-                .flatMap(v => v ?? []) 
-                .map(entry => entry.trim().split(' ')[0].toLowerCase())
-                .filter(Boolean); 
-            if (!help.includes(command) && !budy.startsWith('$ ') && !budy.startsWith('> ')) {
-                let mean = didyoumean(command, help); 
-                let sim = similarity(command, mean); 
-                let similarityPercentage = parseInt(sim * 100);
-                if (mean && command.toLowerCase() !== mean.toLowerCase()) {
-                    const pesanTemplate = `🚫 Command Tidak Ditemukan!\nKami Mendeteksi Mungkin Yang Kamu Maksud\n\n➠ *${prefix + mean}* (${similarityPercentage}%)\n`;
-                    Sky.sendMessage(m.chat, {
-                        image: { url: "https://img12.pixhost.to/images/1412/583442382_biyuofficial.jpg" }, 
-                        caption: pesanTemplate,
-                        footer: botname,
-                        buttons: [
-                            {
-                                buttonId: prefix + mean,
-                                buttonText: {
-                                    displayText: prefix + mean
-                                }
-                            }
-                        ],
-                        viewOnce: true,
-                    }, {
-                        quoted: qtext
-                    });
-                }
-            }
-        } catch (err) {
-            console.error('Error membaca file atau mengirim pesan:', err);
-        }
-    }
-}
 //=====================[ SAMBUTAN ]==================================
         
  // ... (all require statements from above)
