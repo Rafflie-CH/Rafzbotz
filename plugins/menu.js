@@ -354,6 +354,7 @@ Hai @${m.sender.split("@")[0]}!
  │ ⳺ .upchannel
  │ ⳺ .upchannel2
  ╰──────
+* Download Script Bot Rafzbotz: https://github.com/Rafflie-CH/Rafzbotz
  
 * Ingin dapat pembaruan tentang bot ini? 
 Join saluran RAFZ BROADCAST: https://whatsapp.com/channel/0029Vb9R8pgAzNbzE3K8QP39
