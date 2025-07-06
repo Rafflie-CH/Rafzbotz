@@ -58,6 +58,10 @@ Hai @${m.sender.split("@")[0]}!
  │⳺ .ffstalk <id ff>
  │⳺ .ttstalk <nama>
  │⳺ .ytstalk <username> 
+ │⳺ .getbisnis <+62xxnomor wa bisnis>
+ │⳺ .transfermarkt <Nama lengkap pemain>
+ │⳺ .wastalk <+62xxx>
+ │⳺ .roblox <username>
  ╰─────
  
  ╭─ *『 Image Generator Menu 』*
@@ -71,6 +75,9 @@ Hai @${m.sender.split("@")[0]}!
  │ ⳺ .iqc <teks>
  │ ⳺ .faketiktok <reply foto> <Nama>|<Username>|<Followers>|<Following>|<Likes>|<Bio>|Verified(<true>/<false>)|isFollow(<true>/<false>)|<dark>/<light>
  │ ⳺ .fakestory <nama>|<teks>
+ │ ⳺ .pakustad <teks>
+ │ ⳺ .pakustad2 <teks>
+ │ ⳺ .pakustad3 <teks>
  ╰──────
 
 ╭─ *『 Ai Chat 』*
@@ -89,6 +96,7 @@ Hai @${m.sender.split("@")[0]}!
  │ ⳺ .kata" <teks>
  │ ⳺ .cookpad <nama masakan>
  │ ⳺ .selectsurah <urutan surah dalam Al Qur'an>
+ │ ⳺ .murotal <urutan surah dalam Al Qur'an>
  │ ⳺ .kisahnabi <nama Nabi>
  │ ⳺ .infogempa
  │ ⳺ .audiosurah <urutan surah dalam Alquran> (berlimit apikey)
@@ -106,6 +114,8 @@ Hai @${m.sender.split("@")[0]}!
  │ ⳺ .jadwaltv <channel>
  │ ⳺ .topcmd
  │ ⳺ .stt <teks>
+ │ ⳺ .stt2 <teks>
+ │ ⳺ .unsplash <teks> 
  ╰──────
   
  ╭─ *『 Downloader Menu 』*
@@ -120,6 +130,7 @@ Hai @${m.sender.split("@")[0]}!
  │ ⳺ .ytmp3 <link youtube>
  │ ⳺ .ytmp4 <link youtube>
  │ ⳺ .ytmp4v2 <link youtube> <resolusi>
+ │ ⳺ .dl <link>
  │ ⳺ .spdown <link spotify>
  │ ⳺ .gdrive <link google drive>
  │ ⳺ .quiziz <id quiziz>
@@ -184,6 +195,14 @@ Hai @${m.sender.split("@")[0]}!
  │ ⳺ .tag <nomor 62xxx>
  │ ⳺ .confees <teks>|<dari siapa>|<ke siapa>
  │ ⳺ .tts <teks>
+ │ ⳺ .resizevideo <kirim/reply media> <resolusi>
+ │ ⳺ .tambah <angka>+<angka>
+ │ ⳺ .kurang <angka>-<angka>
+ │ ⳺ .kali <angka>*<angka>
+ │ ⳺ .bagi <angka>/<angka>
+ │ ⳺ .ambillinkgc <id gc>
+ │ ⳺ .toviourl <kirim/reply media>
+ │ ⳺ .ocr <kirim/reply media>
  ╰──────
   
  ╭─ *『 Grup Menu 』*
