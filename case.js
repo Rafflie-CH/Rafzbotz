@@ -1407,15 +1407,6 @@ break
 
 //================================================================================
 
-//*[ CASE SKYZOAI ]*
-
-//SUMBER CASE 
-//https://whatsapp.com/channel/0029VaxCZ9I9cDDdrAIznL0S
-
-//SUMBER ESM
-//https://whatsapp.com/channel/0029Vb2OwWCElagtreIoke17
-
-//📄SOURCE CODE
 case 'ai': case 'gpt': case 'openai': {
   if (!text) return m.reply(example("hai"));
 
@@ -1424,30 +1415,49 @@ case 'ai': case 'gpt': case 'openai': {
       react: { text: "⏳", key: m.key }
     });
 
-    let apiUrl = `https://api.simplebot.my.id/api/tools/openai?prompt=sekarang%20kamu%20adalah%20Skyzo-AI&msg=${encodeURIComponent(text)}`;
-    let { data } = await axios.get(apiUrl);
+    let apiUrl = `https://zenzxz.dpdns.org/ai/gpt4o?prompt=${encodeURIComponent(text)}`;
 
-    if (!data.status || !data.result) {
-      return m.reply("❌ Gagal mendapatkan respons dari Skyzo-AI.");
+    let response = await axios.get(apiUrl);
+    let apiResponseData = response.data;
+
+    console.log("DEBUG: Full API Response Data:", JSON.stringify(apiResponseData, null, 2));
+
+    if (!apiResponseData.status) {
+      console.log("DEBUG: API Top-level status is false.");
+      return m.reply("❌ Gagal mendapatkan respons dari AI. Status API adalah false.");
     }
 
-    let replyMsg = `🤖 *Skyzo-AI Chatbot*\n\n` +
-                   `💬 *Pertanyaan:* ${text}\n` +
-                   `🧠 *Jawaban:* ${data.result}\n\n` +
-                   `🔖 *Created by:* Ren?`;
+    if (!apiResponseData.result || apiResponseData.result.status !== 'success' || !apiResponseData.result.data) {
+      const apiMsg = apiResponseData.result && apiResponseData.result.msg ? apiResponseData.result.msg : 'Tidak ada pesan kesalahan spesifik dari API.';
+      console.log("DEBUG: Error in nested result or data:", apiMsg);
+      return m.reply(`❌ Gagal mendapatkan respons dari AI. Pesan dari API: ${apiMsg}`);
+    }
 
-    m.reply(replyMsg);
+    let aiAnswer = apiResponseData.result.data;
+    console.log("DEBUG: Extracted AI Answer:", aiAnswer);
+
+    let replyMsg = `🤖 *GPT4O-AI Chatbot*\n\n` +
+                   `💬 *Pertanyaan:* ${text}\n` +
+                   `🧠 *Jawaban:* ${aiAnswer}\n\n` +
+    
+    console.log("DEBUG: Constructed Reply Message:", replyMsg);
+
+    // ---- PERBAIKAN UTAMA DI SINI ----
+    await m.reply(replyMsg); // Tambahkan 'await' di sini
+    // ----------------------------------
 
     await Sky.sendMessage(m.chat, {
       react: { text: "✅", key: m.key }
     });
 
   } catch (error) {
-    console.error(error);
-    m.reply("❌ Terjadi kesalahan saat menghubungi Skyzo-AI.");
+    console.error("DEBUG: Caught error in AI command:", error);
+    await Sky.sendMessage(m.chat, {react:  {text: '❌', key: m.key}}); // Tambahkan reaksi error jika terjadi di catch block
+    m.reply(`❌ Terjadi kesalahan saat menghubungi AI. Mungkin ada masalah jaringan atau API. Error: ${error.message || error}`);
   }
 };
-break
+break;
+
 
 //================================================================================
 
@@ -1465,7 +1475,7 @@ break
 case "brat2": {
 if (!text) return m.reply(example('teksnya'))
 await Sky.sendMessage(m.chat, {react: {text: '🕒', key: m.key}})
-let res = await getBuffer(`https://beforelife.me/api/maker/brat?query=${text}&apikey=HC-MYOna3CYK8Ktjvf`)
+let res = await getBuffer(`https://zenzxz.dpdns.org/maker/brat?text=${encodeURIComponent(text)}`)
 await Sky.sendAsSticker(m.chat, res, m, {packname: global.packname})
 }
 await Sky.sendMessage(m.chat, {react: {text: '✅', key: m.key}})
@@ -1477,7 +1487,7 @@ break
 case "bratip": {
 if (!text) return m.reply(example('teksnya'))
 await Sky.sendMessage(m.chat, {react: {text: '🕒', key: m.key}})
-let res = await getBuffer(`https://vapis.my.id/api/bratv1?q=${encodeURIComponent(text)}`)
+let res = await getBuffer(`https://flowfalcon.dpdns.org/imagecreator/brat?text=${encodeURIComponent(text)}`)
 await Sky.sendAsSticker(m.chat, res, m, {packname: global.packname})
 }
 await Sky.sendMessage(m.chat, {react: {text: '✅', key: m.key}})
@@ -5361,110 +5371,153 @@ case "readerqr": case "bacaqr":
     break
     
 //=====================================================================================
-    
 case "epep":
 case "ff":
 case "ffstalk":{
- try {
- if (args.length === 0) return m.reply(`Example: ${prefix + command} 537212033`);
+const { createCanvas, loadImage } = require('canvas');
+  try {
+    if (!text) return m.reply(`*Format salah!* Gunakan dengan cara:\n\n${prefix + command} <User ID>|<Region Code>\n_Contoh: ${prefix + command} 1687736053|ID_`);
  
- const id = args[0];
- const apiUrl = `https://vapis.my.id/api/ff-stalk?id=${id}`;
- 
- const response = await fetch(apiUrl);
- const json = await response.json();
- 
- if (!json.status) return m.reply('Failed to fetch data. User ID might be invalid.');
- 
- const data = json.data;
- const account = data.account;
- const pet = data.pet_info;
- const guild = data.guild;
- const items = data.equippedItems;
- 
- let text = `*👤 FREE FIRE USER INFO*\n\n`;
- text += `*🆔 User ID*: ${account.id}\n`;
- text += `*👤 Username*: ${account.name}\n`;
- text += `*🔰 Level*: ${account.level}\n`;
- text += `*⭐ XP*: ${account.xp}\n`;
- text += `*🌍 Region*: ${account.region}\n`;
- text += `*👍 Likes*: ${account.like}\n`;
- text += `*📝 Bio*: ${account.bio}\n`;
- text += `*🎂 Created*: ${account.create_time}\n`;
- text += `*⏱️ Last Login*: ${account.last_login}\n`;
- text += `*🎖️ Honor Score*: ${account.honor_score}\n`;
- text += `*🎯 BR Points*: ${account.BR_points}\n`;
- text += `*🔫 CS Points*: ${account.CS_points}\n`;
- text += `*🎫 Booyah Pass*: ${account.booyah_pass ? 'Yes' : 'No'}\n`;
- text += `*🏆 Booyah Pass Badge*: ${account.booyah_pass_badge}\n\n`;
- 
- if (pet) {
- text += `*🐱 PET INFO*\n`;
- text += `*🐾 Name*: ${pet.name}\n`;
- text += `*🔰 Level*: ${pet.level}\n`;
- text += `*⭐ XP*: ${pet.xp}\n\n`;
- }
- 
- if (guild) {
- text += `*👥 GUILD INFO*\n`;
- text += `*🛡️ Name*: ${guild.name}\n`;
- text += `*🆔 ID*: ${guild.id}\n`;
- text += `*🔰 Level*: ${guild.level}\n`;
- text += `*👥 Members*: ${guild.member}/${guild.capacity}\n\n`;
- }
- 
+    const parts = text.split('|');
+    if (parts.length < 1 || parts.length > 2) {
+      return m.reply(`*Format salah!* Gunakan dengan cara:\n\n${prefix + command} <User ID>|<Region Code>\n_Contoh: ${prefix + command} 1687736053|ID_\n\nJika region tidak diberikan, defaultnya adalah ID.`);
+    }
 
- text += `*🎮 EQUIPPED ITEMS*\n`;
- 
- if (items.Outfit && items.Outfit.length > 0) {
- text += `\n*👕 Outfit*:\n`;
- items.Outfit.forEach(item => {
- text += `- ${item.name}\n`;
- });
- }
- 
- if (items.Pet && items.Pet.length > 0) {
- text += `\n*🐾 Pet*:\n`;
- items.Pet.forEach(item => {
- text += `- ${item.name}\n`;
- });
- }
- 
- if (items.Avatar && items.Avatar.length > 0) {
- text += `\n*🎭 Avatar*:\n`;
- items.Avatar.forEach(item => {
- text += `- ${item.name}\n`;
- });
- }
- 
- if (items.Banner && items.Banner.length > 0) {
- text += `\n*🏳️ Banner*:\n`;
- items.Banner.forEach(item => {
- text += `- ${item.name}\n`;
- });
- }
- 
- if (items.Weapons && items.Weapons.length > 0) {
- text += `\n*🔫 Weapons*:\n`;
- items.Weapons.forEach(item => {
- text += `- ${item.name}\n`;
- });
- }
- 
- if (items.Title && items.Title.length > 0) {
- text += `\n*📜 Title*:\n`;
- items.Title.forEach(item => {
- text += `- ${item.name}\n`;
- });
- }
- 
- await m.reply(text);
- } catch (error) {
- console.error(error);
- await m.reply('An error occurred while fetching the data');
- }
+    const uid = parts[0].trim();
+    const region = parts[1] ? parts[1].trim().toUpperCase() : 'ID'; 
+    
+    if (!uid) {
+        return m.reply(`*User ID tidak boleh kosong!* Gunakan format: ${prefix + command} <User ID>|<Region Code>`);
+    }
+
+    // --- REAKSI MEMPROSES (⏳) ---
+    await Sky.sendMessage(m.chat, {
+      react: { text: "⏳", key: m.key }
+    });
+    // ----------------------------
+
+    const apiUrl = `https://zenzxz.dpdns.org/stalker/freefire?uid=${encodeURIComponent(uid)}&region=${encodeURIComponent(region)}&media=true`;
+    
+    const response = await axios.get(apiUrl);
+    const json = response.data;
+
+    if (!json.status || !json.success) {
+      await Sky.sendMessage(m.chat, { react: { text: "❌", key: m.key } }); // Reaksi gagal
+      return m.reply(`Gagal mengambil data untuk User ID: ${uid} di region: ${region}. User ID mungkin tidak valid atau tidak ditemukan.`);
+    }
+    
+    const data = json.data; 
+    const account = data.account;
+    const pet = data.pet;
+    const social = data.social;
+    const creditScore = data.creditScore;
+    const images = data.images;
+
+    let textMessage = `*👤 FREE FIRE USER INFO*\n\n`;
+    textMessage += `*🆔 User ID*: ${account.accountId}\n`;
+    textMessage += `*👤 Username*: ${account.nickname}\n`;
+    textMessage += `*🔰 Level*: ${account.level}\n`;
+    textMessage += `*⭐ EXP*: ${account.exp}\n`;
+    textMessage += `*🌍 Region*: ${account.region}\n`;
+    textMessage += `*👍 Likes*: ${account.likes}\n`;
+    textMessage += `*📝 Bio/Signature*: ${social.signature || 'Tidak Tersedia'}\n`;
+    textMessage += `*🎂 Created At*: ${account.createdAt}\n`;
+    textMessage += `*⏱️ Last Login*: ${account.lastLogin}\n`;
+    textMessage += `*🎖️ Credit Score*: ${creditScore.score}\n`;
+    textMessage += `*🏆 Rank*: ${account.rank || 'N/A'}\n`;
+    textMessage += `*📈 Max Rank*: ${account.maxRank || 'N/A'}\n`;
+    textMessage += `*🔪 CS Rank*: ${account.csRank || 'N/A'}\n`;
+    
+    textMessage += `*👑 Prime Level*: ${account.primeLevel || 'N/A'}\n`;
+    textMessage += `*💎 Diamond Cost*: ${account.diamondCost || 'N/A'}\n`;
+    textMessage += `*📊 Ranking Points*: ${account.rankingPoints || 'N/A'}\n`;
+    textMessage += `*📅 Release Version*: ${account.releaseVersion || 'N/A'}\n`;
+    textMessage += `*🗓️ Season ID*: ${account.seasonId || 'N/A'}\n`;
+    textMessage += `*🌐 Language*: ${social.language || 'N/A'}\n\n`;
+    
+    if (pet && pet.name) {
+      textMessage += `*🐱 PET INFO*\n`;
+      textMessage += `*🐾 Name*: ${pet.name}\n`;
+      textMessage += `*🔰 Level*: ${pet.level}\n`;
+      textMessage += `*⭐ EXP*: ${pet.exp}\n\n`;
+    }
+
+    textMessage += `*Catatan: Beberapa informasi (seperti BR/CS Points spesifik, Booyah Pass, info Guild, dan daftar item terpakai dengan nama) tidak tersedia di API ini.*\n\n`;
+
+    let imageSent = false;
+
+    const mergeBannerAndOutfit = async (bannerUrl, outfitUrl) => {
+        try {
+            const bannerImg = await loadImage(bannerUrl);
+            const outfitImg = await loadImage(outfitUrl);
+
+            const canvasWidth = bannerImg.width; 
+            const canvasHeight = bannerImg.height + outfitImg.height; 
+
+            const canvas = createCanvas(canvasWidth, canvasHeight);
+            const ctx = canvas.getContext('2d');
+
+            ctx.drawImage(bannerImg, 0, 0);
+
+            const outfitX = (canvasWidth - outfitImg.width) / 2; 
+            ctx.drawImage(outfitImg, outfitX, bannerImg.height);
+
+            return canvas.toBuffer('image/png');
+        } catch (error) {
+            console.error("Error merging images with canvas:", error);
+            return null;
+        }
+    };
+
+    if (images && images.bannerImage && images.outfitImage) {
+        const mergedImageBuffer = await mergeBannerAndOutfit(images.bannerImage, images.outfitImage);
+        if (mergedImageBuffer) {
+            await Sky.sendMessage(m.chat, {
+                image: mergedImageBuffer,
+                caption: textMessage
+            }, { quoted: m });
+            imageSent = true;
+        } else {
+            if (images.outfitImage) {
+                await Sky.sendMessage(m.chat, { image: { url: images.outfitImage }, caption: `*Outfits:*\n\n${textMessage}` }, { quoted: m });
+                imageSent = true;
+            } else if (images.bannerImage) {
+                await Sky.sendMessage(m.chat, { image: { url: images.bannerImage }, caption: `*Banner:*\n\n${textMessage}` }, { quoted: m });
+                imageSent = true;
+            }
+        }
+    } else if (images && images.outfitImage) {
+        await Sky.sendMessage(m.chat, {
+            image: { url: images.outfitImage },
+            caption: `*Outfits:*\n\n${textMessage}`
+        }, { quoted: m });
+        imageSent = true;
+    } else if (images && images.bannerImage) {
+        await Sky.sendMessage(m.chat, {
+            image: { url: images.bannerImage },
+            caption: `*Banner:*\n\n${textMessage}`
+        }, { quoted: m });
+        imageSent = true;
+    }
+
+    if (!imageSent) {
+        await m.reply(textMessage); 
+    }
+
+    // --- REAKSI BERHASIL (✅) ---
+    await Sky.sendMessage(m.chat, { react: { text: "✅", key: m.key } });
+    // --------------------------
+
+  } catch (error) {
+    console.error("Error during FF Stalker:", error);
+    // --- REAKSI GAGAL (❌) ---
+    await Sky.sendMessage(m.chat, { react: { text: "❌", key: m.key } });
+    // ------------------------
+    m.reply(`Terjadi kesalahan saat mengambil data atau memproses permintaan: ${error.message || error}`);
+  }
 }
- break
+break;
+
  //====
  case "ml": case "mlstalk": {
   let inputData;
@@ -5755,7 +5808,7 @@ if (!text) return m.reply(example('teksnya'))
 try {
 await Sky.sendMessage(m.chat, {react: {text: '🕖', key: m.key}})
 const axios = require('axios');
-let brat = `https://api.nekorinn.my.id/maker/bratvid?text=${encodeURIComponent(text)}`;
+let brat = `https://zenzxz.dpdns.org/maker/bratvid?text=${encodeURIComponent(text)}`;
 let response = await axios.get(brat, { responseType: "arraybuffer" });
 let videoBuffer = response.data;
 let stickerBuffer = await Sky.sendAsSticker(m.chat, videoBuffer, m, {
@@ -9166,29 +9219,48 @@ break
     
  //==============================================
     
-/*(Fitur AI(gk tau tapi lumayan 🗿))*
-Type: Case
-*[ Sumber ]* https://whatsapp.com/channel/0029VakRR89L7UVPwf53TB0v
-*/
-case "proai":
-case "aipro":
- if (!args.length) {
- return m.reply("Silakan masukkan pertanyaan untuk AI.\n\nContoh: *.aipro Sekarang hari apa?*");
- }
- let query = encodeURIComponent(args.join(" "));
- let apiUrl3 = `https://www.laurine.site/api/ai/heckai?query=${query}`;
- try {
- let response = await fetch(apiUrl3);
- let data = await response.json();
- if (!data.status || !data.data) {
- return reply("❌ AI tidak dapat memberikan jawaban.");
- }
- m.reply(`🤖 *AI Response:*\n\n${data.data}`);
- } catch (error) {
- console.error(error);
- m.reply("❌ Terjadi kesalahan saat mengakses AI.");
- }
- break
+case 'proai': case 'aipro': {
+  if (!text) return m.reply(`Halo! Ada yang bisa saya bantu hari ini? Silakan berikan pertanyaan Anda. Contoh: ${prefix}ai siapa presiden indonesia`);
+
+  // Reaksi 'memproses'
+  await Sky.sendMessage(m.chat, { react: { text: "⏳", key: m.key } });
+
+  try {
+    // URL API baru dari Zenz.biz.id untuk LuminAI
+    const apiUrl = `https://zenzxz.dpdns.org/ai/luminai?text=${encodeURIComponent(text)}`;
+
+    const response = await axios.get(apiUrl);
+    const apiResponseData = response.data;
+
+    console.log("DEBUG: Full API Response Data:", JSON.stringify(apiResponseData, null, 2));
+
+    // Periksa status utama dan keberadaan hasil
+    if (!apiResponseData.status || !apiResponseData.result) {
+      console.log("DEBUG: API Top-level status is false or result is missing.");
+      return m.reply("❌ Gagal mendapatkan respons dari AI. Mungkin ada masalah dengan API atau respons tidak valid.");
+    }
+
+    // Ambil hasil langsung dari field 'result'
+    const aiAnswer = apiResponseData.result;
+    console.log("DEBUG: Extracted AI Answer:", aiAnswer);
+
+    const replyMsg = `🤖 *LuminAI Chatbot*\n\n${aiAnswer}`
+    
+    console.log("DEBUG: Constructed Reply Message:", replyMsg);
+
+    await m.reply(replyMsg);
+
+    // Reaksi 'berhasil'
+    await Sky.sendMessage(m.chat, { react: { text: "✅", key: m.key } });
+
+  } catch (error) {
+    console.error("DEBUG: Caught error in AI command:", error);
+    // Reaksi 'gagal'
+    await Sky.sendMessage(m.chat, { react: { text: "❌", key: m.key } });
+    m.reply(`❌ Terjadi kesalahan saat menghubungi AI. Mungkin ada masalah jaringan atau API. Error: ${error.message || error}`);
+  }
+};
+break;
     
  //==============================================
 /*(Fitur Create Image (Bing))*
@@ -13623,7 +13695,7 @@ case 'hdreq': {
   const {
     ImageUploadService
   } = require('node-upload-images');
-  const service = new ImageUploadService('postimages.org');
+  const service = new ImageUploadService('pixhost.to');
   let fturl = '';
   let isFromUrl = false;
   const bufferApiList = [{
@@ -14537,7 +14609,7 @@ case 'transfermarkt': {
 
   await Sky.sendMessage(m.chat, { react: { text: '🕒', key: m.key } })
 
-  const res = await fetch(`https://zenz.biz.id/search/transfermarkt?query=${encodeURIComponent(text)}`)
+  const res = await fetch(`https://zenzxz.dpdns.org/search/transfermarkt?query=${encodeURIComponent(text)}`)
   const json = await res.json()
 
   if (!json.status || !json.data) return m.reply('Data pemain lu gaada wok')
@@ -14804,7 +14876,7 @@ const { ImageUploadService } = require('node-upload-images')
 const service = new ImageUploadService('pixhost.to');
 let { directLink } = await service.uploadFromBinary(fs.readFileSync(media), 'Rafzbot.png');
 let imageUrl = directLink.toString()
-    let data = await fetch(`https://zenz.biz.id/tools/ocr?url=${encodeURIComponent(imageUrl)}`)
+    let data = await fetch(`https://zenzxz.dpdns.org/tools/ocr?url=${encodeURIComponent(imageUrl)}`)
     await fs.unlinkSync(media)
     let hasil = await data.json()
     await Sky.sendMessage(m.chat, {
@@ -14853,7 +14925,7 @@ await Sky.sendMessage(m.chat, {react:  {text: '🕒', key: m.key}})
  const format = args[1]?.toLowerCase() || 'video';
  if (format === 'mp3' || format === 'audio') {
  await m.reply("⏳ Mengambil audio (MP3) dari YouTube...");
- const apiUrl = `https://zenz.biz.id/downloader/ytmp3?url=${encodeURIComponent(url)}`;
+ const apiUrl = `https://zenzxz.dpdns.org/downloader/ytmp3?url=${encodeURIComponent(url)}`;
  const { data: apiResponse } = await axios.get(apiUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
  if (!apiResponse.status || !apiResponse.download_url) throw new Error("API ytmp3 Zenz tidak memberikan hasil yang valid.");
  const { title, author, lengthSeconds, views, thumbnail, download_url } = apiResponse;
@@ -14862,7 +14934,7 @@ await Sky.sendMessage(m.chat, {react:  {text: '🕒', key: m.key}})
  await Sky.sendMessage(m.chat, { audio: { url: download_url }, mimetype: 'audio/mpeg', fileName: `${title}.mp3` }, { quoted: m });
  } else {
  await m.reply("⏳ Mengambil video (MP4) dari YouTube...");
- const apiUrl = `https://zenz.biz.id/downloader/ytmp4?url=${encodeURIComponent(url)}`;
+ const apiUrl = `https://zenzxz.dpdns.org/downloader/ytmp4?url=${encodeURIComponent(url)}`;
  const { data: apiResponse } = await axios.get(apiUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
  if (!apiResponse.status || !apiResponse.download_url) throw new Error("API ytmp4 Zenz tidak memberikan hasil yang valid.");
  const { title, author, lengthSeconds, views, thumbnail, download_url } = apiResponse;
@@ -14878,7 +14950,7 @@ await Sky.sendMessage(m.chat, {react:  {text: '🕒', key: m.key}})
  // TikTok
  } else if (url.includes("tiktok.com")) {
  await m.reply("⏳ Mengambil data video TikTok...");
- const apiUrl = `https://zenz.biz.id/downloader/tiktok?url=${encodeURIComponent(url)}`;
+ const apiUrl = `https://zenzxz.dpdns.org/downloader/tiktok?url=${encodeURIComponent(url)}`;
  const { data: apiResponse } = await axios.get(apiUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
  const videoData = apiResponse?.result?.data;
  if (!apiResponse.status || !videoData) throw new Error("API TikTok Zenz tidak memberikan data video yang valid.");
@@ -14904,7 +14976,7 @@ await Sky.sendMessage(m.chat, {react:  {text: '🕒', key: m.key}})
  // Instagram
  } else if (url.includes("instagram.com")) {
  await m.reply("⏳ Mengambil media Instagram...");
- const apiUrl = `https://zenz.biz.id/downloader/instagram?url=${encodeURIComponent(url)}`;
+ const apiUrl = `https://zenzxz.dpdns.org/downloader/instagram?url=${encodeURIComponent(url)}`;
  const { data: apiResponse } = await axios.get(apiUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
  const result = apiResponse.result;
  if (!apiResponse.status || !result) throw new Error("API Instagram Zenz tidak memberikan hasil yang valid.");
@@ -14922,7 +14994,7 @@ await Sky.sendMessage(m.chat, {react:  {text: '🕒', key: m.key}})
  // Facebook
  } else if (url.includes("facebook.com") || url.includes("fb.watch")) {
  await m.reply("⏳ Mengambil video Facebook...");
- const apiUrl = `https://zenz.biz.id/downloader/facebook?url=${encodeURIComponent(url)}`;
+ const apiUrl = `https://zenzxz.dpdns.org/downloader/facebook?url=${encodeURIComponent(url)}`;
  const { data: apiResponse } = await axios.get(apiUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
  if (!apiResponse.status || !apiResponse.videos) throw new Error("API Facebook Zenz tidak memberikan hasil yang valid.");
  const { title = "Video Facebook", videos } = apiResponse;
@@ -14934,7 +15006,7 @@ await Sky.sendMessage(m.chat, {react:  {text: '🕒', key: m.key}})
  // Twitter / X
  } else if (url.includes("twitter.com") || url.includes("x.com")) {
  await m.reply("⏳ Mengambil media dari Twitter/X...");
- const apiUrl = `https://zenz.biz.id/downloader/twitter?url=${encodeURIComponent(url)}`;
+ const apiUrl = `https://zenzxz.dpdns.org/downloader/twitter?url=${encodeURIComponent(url)}`;
  const { data: apiResponse } = await axios.get(apiUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
  const result = apiResponse.result;
  if (!apiResponse.status || !result?.media) throw new Error("API Twitter Zenz tidak memberikan hasil yang valid.");
@@ -14951,7 +15023,7 @@ await Sky.sendMessage(m.chat, {react:  {text: '🕒', key: m.key}})
  // Pinterest
  } else if (url.includes("pinterest.com")) {
  await m.reply("⏳ Mengambil media Pinterest...");
- const apiUrl = `https://zenz.biz.id/downloader/pinterest?url=${encodeURIComponent(url)}`;
+ const apiUrl = `https://zenzxz.dpdns.org/downloader/pinterest?url=${encodeURIComponent(url)}`;
  const { data: apiResponse } = await axios.get(apiUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
  const results = apiResponse.result;
  if (!apiResponse.status || !Array.isArray(results) || results.length === 0) throw new Error("API Pinterest Zenz tidak memberikan hasil yang valid.");
@@ -14963,7 +15035,7 @@ await Sky.sendMessage(m.chat, {react:  {text: '🕒', key: m.key}})
  // SoundCloud
  } else if (url.includes("soundcloud.com")) {
  await m.reply("⏳ Mengambil audio SoundCloud...");
- const apiUrl = `https://zenz.biz.id/downloader/soundcloud?url=${encodeURIComponent(url)}`;
+ const apiUrl = `https://zenzxz.dpdns.org/downloader/soundcloud?url=${encodeURIComponent(url)}`;
  const { data: apiResponse } = await axios.get(apiUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
  if (!apiResponse.status || !apiResponse.audio_url) throw new Error("API SoundCloud Zenz tidak memberikan hasil yang valid.");
  const { title = 'SoundCloud Audio', author = 'N/A', duration = 'N/A', thumbnail, audio_url } = apiResponse;
@@ -14974,7 +15046,7 @@ await Sky.sendMessage(m.chat, {react:  {text: '🕒', key: m.key}})
  // MediaFire
  } else if (url.includes("mediafire.com")) {
  await m.reply("⏳ Mengambil file dari MediaFire...");
- const apiUrl = `https://zenz.biz.id/downloader/mediafire?url=${encodeURIComponent(url)}`;
+ const apiUrl = `https://zenzxz.dpdns.org/downloader/mediafire?url=${encodeURIComponent(url)}`;
  const { data: apiResponse } = await axios.get(apiUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
  const result = apiResponse.result;
  if (!apiResponse.status || !result?.download) throw new Error("API MediaFire Zenz tidak memberikan hasil yang valid.");
@@ -14986,7 +15058,7 @@ await Sky.sendMessage(m.chat, {react:  {text: '🕒', key: m.key}})
  // Terabox
  } else if (url.includes("terabox.com")) {
  await m.reply("⏳ Mengambil file dari Terabox...");
- const apiUrl = `https://zenz.biz.id/downloader/terabox?url=${encodeURIComponent(url)}`;
+ const apiUrl = `https://zenzxz.dpdns.org/downloader/terabox?url=${encodeURIComponent(url)}`;
  const { data: apiResponse } = await axios.get(apiUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
  const result = apiResponse.result;
  if (!apiResponse.status || !result?.direct_url) throw new Error("API Terabox Zenz tidak memberikan hasil yang valid.");
