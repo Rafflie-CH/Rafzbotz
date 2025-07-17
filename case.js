@@ -5808,7 +5808,7 @@ if (!text) return m.reply(example('teksnya'))
 try {
 await Sky.sendMessage(m.chat, {react: {text: '🕖', key: m.key}})
 const axios = require('axios');
-let brat = `https://zenzxz.dpdns.org/maker/bratvid?text=${encodeURIComponent(text)}`;
+let brat = `https://flowfalcon.dpdns.org/imagecreator/brat-animated?text=${encodeURIComponent(text)}`;
 let response = await axios.get(brat, { responseType: "arraybuffer" });
 let videoBuffer = response.data;
 let stickerBuffer = await Sky.sendAsSticker(m.chat, videoBuffer, m, {
