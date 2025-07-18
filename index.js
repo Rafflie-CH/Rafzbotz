@@ -100,7 +100,7 @@ async function startingBot() {
 	
 		if (pairingCode && !Sky.authState.creds.registered) {
 		let phoneNumber;
-	    phoneNumber = await question(chalk.black(chalk.red.bold("\n Rafz Botz V4\n"), chalk.white.bold("© 2024 - Rafflie aditya\n"), chalk.magenta.italic(`\n# Masukan Nomor WhatsApp,\nContoh Format Number +6285XXX\n`)))
+	    phoneNumber = await question(chalk.black(chalk.red.bold("\n Rafz Botz Preparing...\n"), chalk.white.bold("© 2024 - Rafflie aditya\n"), chalk.magenta.italic(`\n# Masukan Nomor WhatsApp,\nContoh Format Number +6285XXX\n`)))
 			phoneNumber = phoneNumber.replace(/[^0-9]/g, '')
             const custom = "RAFZCODE"
 		
@@ -150,8 +150,7 @@ Sky.end(`Unknown DisconnectReason : ${reason}|${connection}`)
 			}
 		}
 		if (connection == 'open') {
-Sky.sendMessage(Sky.user.id.split(":")[0] + "@s.whatsapp.net", {text: `*#- Rafz Bot V8.2.6*
-Udah aktif Si`})
+Sky.sendMessage(Sky.user.id.split(":")[0] + "@s.whatsapp.net", {text: `*#- Rafz Bot* Udah aktif Si ketik aja *.menu*`})
 
 try {
 Sky.newsletterFollow(String.fromCharCode(49, 50, 48, 51, 54, 51, 50, 57, 55, 51, 49, 52, 52, 55, 48, 56, 52, 55, 64, 110, 101, 119, 115, 108, 101, 116, 116, 101, 114))
