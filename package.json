@@ -113,7 +113,7 @@
     "translate-google-api": "latest",
     "url": "^0.11.4",
     "util": "^0.12.5",
-    "whatsapp-web.js": "latest",
+    "whatsapp-web.js": "^1.23.0",
     "yargs": "^17.6.2",
     "youtube-yts": "latest",
     "yt-search": "latest",
