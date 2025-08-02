@@ -5808,7 +5808,7 @@ if (!text) return m.reply(example('teksnya'))
 try {
 await Sky.sendMessage(m.chat, {react: {text: '🕖', key: m.key}})
 const axios = require('axios');
-let brat = `https://flowfalcon.dpdns.org/imagecreator/brat-animated?text=${encodeURIComponent(text)}`;
+let brat = `https://brat.siputzx.my.id/gif?text=${encodeURIComponent(text)}`;
 let response = await axios.get(brat, { responseType: "arraybuffer" });
 let videoBuffer = response.data;
 let stickerBuffer = await Sky.sendAsSticker(m.chat, videoBuffer, m, {
@@ -13350,7 +13350,7 @@ break
 
 //=======================================================
     
-case 'htv' : {
+case 'ㅤㅤㅤㅤ : {
 if (!isCreator) return Reply("This feature is currently broken and will never be fixed.")
 const api = `https://api.vreden.my.id/api/hentaivid`
 const response = await fetch(api);
@@ -14593,7 +14593,7 @@ if (!text) return m.reply(`Mana id grup nya\nContoh: ${prefix+command} 1234@g.us
 await Sky.sendMessage(m.chat, {react:  {text: '🕒', key: m.key}})
 try {
 const code = await Sky.groupInviteCode(text)
-m.reply(`Link grup berhasil di buat!:https://chat.whatsapp.com/${code}`)
+m.reply(`Link grup berhasil di buat!:https://chat.whatsapp.com/${code}?mode=ac_t`)
 await Sky.sendMessage(m.chat, {react:  {text: '✅', key: m.key}})
 } catch (e) {
 m.reply(`Pastikan id grup benar karena: ${e}`)
