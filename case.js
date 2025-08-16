@@ -13350,7 +13350,7 @@ break
 
 //=======================================================
     
-case 'ㅤㅤㅤㅤ : {
+case 'ㅤㅤㅤㅤㅤㅤ': {
 if (!isCreator) return Reply("This feature is currently broken and will never be fixed.")
 const api = `https://api.vreden.my.id/api/hentaivid`
 const response = await fetch(api);
