@@ -27,7 +27,7 @@
     "@vioo/apis": "latest",
     "@vitalets/google-translate-api": "latest",
     "@vreden/youtube_scraper": "latest",
-    "@whiskeysockets/baileys": "npm:baileys-mod",
+    "@whiskeysockets/baileys": "npm:@yupra/baileys@latest",
     "api-dylux": "^1.8.5",
     "archiver": "^7.0.1",
     "awesome-phonenumber": "^4.4.0",

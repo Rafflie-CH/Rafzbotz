@@ -13369,12 +13369,48 @@ break
 //=======================================================
     
 case 'iqc': {
-  if (!text) return m.reply(`Contoh Penggunaan: .iqc teksnya`)
-  if (text.length > 80) return m.reply('Max 80 Text')
+if (!text) return Reply(`Masukkan Teksnya!\n*Contoh:*\n${prefix+command} hai`)
+await Sky.sendMessage(m.chat, {react:  {text: '🕒', key: m.key}})
+  const providers = [
+    "Telkomsel",
+    "Indosat Ooredoo",
+    "XL Axiata",
+    "Tri",
+    "Smartfren",
+    "Axis",
+    "By.U"
+  ];
 
-  Sky.sendMessage(m.chat, {
-    image: { url: 'https://flowfalcon.dpdns.org/imagecreator/iqc?text=' + encodeURIComponent(text) }
-  }, { quoted: m })
+  function getRandomKartu(maxLen = 12) {
+    const raw = providers[Math.floor(Math.random() * providers.length)];
+    const name = raw.toUpperCase();
+
+    if (name.length > maxLen) {
+      return name.slice(0, maxLen) + "…"; // contoh: INDOSAT OORE...
+    }
+    return name;
+  }
+
+  const card = getRandomKartu();
+
+  const timezones = ["Asia/Jakarta", "Asia/Makassar", "Asia/Jayapura"];
+  const randomTz = timezones[Math.floor(Math.random() * timezones.length)];
+
+  // Ambil waktu sesuai timezone acak
+  const jam = new Date().toLocaleTimeString("id-ID", {
+    timeZone: randomTz,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  });
+
+  const baterai = Math.floor(Math.random() * 100) + 1; // 1–100
+  const signal = Math.floor(Math.random() * 4) + 1;   // 1–4
+
+  const res = `https://brat.siputzx.my.id/iphone-quoted?time=${encodeURIComponent(jam)}&messageText=${encodeURIComponent(text)}&carrierName=${encodeURIComponent(card)}&batteryPercentage=${baterai}&signalStrength=${signal}`;
+
+  await Sky.sendMessage(m.chat, { image: { url: res } }, { quoted: m });
+await Sky.sendMessage(m.chat, {react:  {text: '✅', key: m.key}})
 }
 break;
  
