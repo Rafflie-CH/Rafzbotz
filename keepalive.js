@@ -1,12 +1,16 @@
+// keepalive.js
 const express = require('express');
 const app = express();
-const PORT = process.env.PORT || 0; // 0 biar sistem pilih port acak
+const PORT = process.env.PORT || 3000;
 
-if (!process.env.LISTEN_STARTED) {
-  process.env.LISTEN_STARTED = true;
-  app.listen(PORT, () => console.log(`Keepalive server running on port ${PORT}`));
-}
+// route utama
+app.get('/', (req, res) => {
+  res.send('Bot aktif — Keepalive berjalan!');
+});
 
+app.listen(PORT, () => console.log(`Keepalive server running on port ${PORT}`));
+
+// ping ke diri sendiri setiap 5 menit
 setInterval(() => {
-  require("node-fetch")(`https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`).catch(() => {});
+  fetch(`https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`).catch(() => {});
 }, 5 * 60 * 1000);
