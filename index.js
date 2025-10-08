@@ -50,7 +50,6 @@ const app = express();
 const PORT = process.env.PORT || Math.floor(Math.random() * 1000) + 2000;
 app.listen(PORT, () => console.log(`Keepalive server running on port ${PORT}`));
 
-app.get('/', (req, res) => res.send('✅ Bot WhatsApp is alive!'));
 setInterval(() => {
   require("node-fetch")(`https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`).catch(() => {});
 }, 5 * 60 * 1000);
