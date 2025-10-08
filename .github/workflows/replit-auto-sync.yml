@@ -1,0 +1,14 @@
+name: Sync Replit on Push
+
+on:
+  push:
+    branches:
+      - Rafzbotz-Replit
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Replit deploy via webhook
+        run: |
+          curl -X POST ${{ secrets.REPLIT_SYNC_HOOK }}
