@@ -44,7 +44,7 @@ await cleaningSession("./session")
 }, 10000)
 })()*/
 //=======================[ Replit ]================================
-
+/*
 const express = require('express');
 const app = express();
 
@@ -55,7 +55,7 @@ if (!process.env.LISTEN_STARTED) {
   process.env.LISTEN_STARTED = true; // biar gak run 2x
   app.listen(PORT, () => console.log(`Keepalive server running on port ${PORT}`));
 }
-
+*/
 //================================================================================
 
 const DataBase = require('./source/database');
