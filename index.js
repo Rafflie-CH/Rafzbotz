@@ -47,7 +47,8 @@ await cleaningSession("./session")
 
 const express = require('express');
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || Math.floor(Math.random() * 1000) + 2000;
+app.listen(PORT, () => console.log(`Keepalive server running on port ${PORT}`));
 
 app.get('/', (req, res) => res.send('✅ Bot WhatsApp is alive!'));
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
