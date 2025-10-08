@@ -47,13 +47,14 @@ await cleaningSession("./session")
 
 const express = require('express');
 const app = express();
+
 const PORT = process.env.PORT || Math.floor(Math.random() * 1000) + 2000;
-app.listen(PORT, () => console.log(`Keepalive server running on port ${PORT}`));
 
-setInterval(() => {
-  require("node-fetch")(`https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`).catch(() => {});
-}, 5 * 60 * 1000);
-
+// Cek dulu apakah port sudah dipakai
+if (!process.env.LISTEN_STARTED) {
+  process.env.LISTEN_STARTED = true; // biar gak run 2x
+  app.listen(PORT, () => console.log(`Keepalive server running on port ${PORT}`));
+}
 //================================================================================
 
 const DataBase = require('./source/database');
