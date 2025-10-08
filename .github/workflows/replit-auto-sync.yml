@@ -1,14 +1,21 @@
-name: Sync Replit on Push
+name: Auto Sync to Replit
 
 on:
   push:
     branches:
-      - Rafzbotz-Replit
+      - Rafzbotz-Replit  # ganti dengan nama branch kamu
 
 jobs:
-  update:
+  sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger Replit deploy via webhook
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Upload to Replit via API
         run: |
-          curl -X POST ${{ secrets.REPLIT_SYNC_HOOK }}
+          curl -X POST "https://replit.com/~" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "repo": "https://github.com/Rafflie-CH/Rafzbotz",
+            "branch": "Rafzbotz-Replit"
+          }'
