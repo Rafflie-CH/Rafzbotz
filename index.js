@@ -44,18 +44,24 @@ await cleaningSession("./session")
 }, 10000)
 })()*/
 //=======================[ Replit ]================================
-/*
+
 const express = require('express');
 const app = express();
+const PORT = process.env.PORT || 3000;
 
-const PORT = process.env.PORT || Math.floor(Math.random() * 1000) + 2000;
+// route utama
+app.get('/', (req, res) => {
+  res.send('Bot aktif — Keepalive berjalan!');
+});
 
-// Cek dulu apakah port sudah dipakai
-if (!process.env.LISTEN_STARTED) {
-  process.env.LISTEN_STARTED = true; // biar gak run 2x
-  app.listen(PORT, () => console.log(`Keepalive server running on port ${PORT}`));
-}
-*/
+app.listen(PORT, () => console.log(`Keepalive server running on port ${PORT}`));
+
+// ping ke diri sendiri setiap 5 menit
+setInterval(() => {
+  fetch(`https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`).catch(() => {});
+}, 5 * 60 * 1000);
+
+
 //================================================================================
 
 const DataBase = require('./source/database');
