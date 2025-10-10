@@ -48,17 +48,19 @@ await cleaningSession("./session")
 const express = require("express");
 const app = express();
 
-// Tampilkan halaman sederhana biar Replit gak kosong
 app.get("/", (req, res) => {
-  res.send("<h2>✅ Bot WhatsApp aktif dan berjalan!</h2>");
+  res.send("<h2>✅ RafzBot aktif dan berjalan!</h2>");
 });
 
-// Jalankan di port default Replit
+// Tambahkan route untuk permintaan HEAD agar UptimeRobot gak 404
+app.head("/", (req, res) => {
+  res.status(200).end();
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server berjalan di port ${PORT}`);
 });
-
 //================================================================================
 
 const DataBase = require('./source/database');
