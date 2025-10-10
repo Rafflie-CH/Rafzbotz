@@ -48,13 +48,16 @@ await cleaningSession("./session")
 const express = require("express");
 const app = express();
 
+// Tampilkan halaman sederhana biar Replit gak kosong
 app.get("/", (req, res) => {
-  res.send("✅ Rafz Bot aktif di Replit!");
+  res.send("<h2>✅ Bot WhatsApp aktif dan berjalan!</h2>");
 });
 
+// Jalankan di port default Replit
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Keepalive server running on port ${PORT}`));
-
+app.listen(PORT, () => {
+  console.log(`Server berjalan di port ${PORT}`);
+});
 
 //================================================================================
 
