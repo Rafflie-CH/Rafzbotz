@@ -43,6 +43,31 @@ await setInterval(async () => {
 await cleaningSession("./session")
 }, 10000)
 })()*/
+// ==================== [ GLOBAL ERROR HANDLER + AUTO RESTART ] ====================
+
+const { exec } = require('child_process');
+
+// Tangani error umum biar gak bikin Replit stop
+process.on('uncaughtException', (err) => {
+  console.error('❌ Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('⚠️ Unhandled Rejection:', reason);
+});
+
+// Restart otomatis kalau error parah
+process.on('uncaughtException', (err) => {
+  console.error('❌ Uncaught Exception:', err);
+  console.log('🔁 Restarting bot...');
+  setTimeout(() => {
+    exec('npm start', (error, stdout, stderr) => {
+      if (error) console.error(`Gagal restart bot: ${error.message}`);
+      console.log(stdout || stderr);
+    });
+  }, 3000); // delay 3 detik sebelum restart
+});
+
 //=======================[ Replit ]================================
 
 const express = require("express");
@@ -95,6 +120,7 @@ const { isUrl, generateMessageTag, getBuffer, getSizeMedia, fetchJson, await, sl
 //================================================================================
 
 async function startingBot() {
+	try {
     const store = await makeInMemoryStore({ logger: pino().child({ level: 'silent', stream: 'store' }) })
 	const { state, saveCreds } = await useMultiFileAuthState('session');
 	const { version, isLatest } = await fetchLatestWaWebVersion()
@@ -125,6 +151,11 @@ async function startingBot() {
 			let code = await Sky.requestPairingCode(phoneNumber, custom);
 			console.log(chalk.magenta.italic(`Kode Pairing Kamu :`), chalk.white.bold(`${code?.match(/.{1,4}/g)?.join('-') || code}`))
 	}
+		 } catch (err) {
+    console.error("❌ Error di startingBot:", err);
+    setTimeout(startingBot, 5000);
+  }
+}
 	
 //================================================================================
 	
