@@ -118,7 +118,6 @@ const { isUrl, generateMessageTag, getBuffer, getSizeMedia, fetchJson, await, sl
 //================================================================================
 
 async function startingBot() {
-	try {
     const store = await makeInMemoryStore({ logger: pino().child({ level: 'silent', stream: 'store' }) })
 	const { state, saveCreds } = await useMultiFileAuthState('session');
 	const { version, isLatest } = await fetchLatestWaWebVersion()
@@ -149,11 +148,6 @@ async function startingBot() {
 			let code = await Sky.requestPairingCode(phoneNumber, custom);
 			console.log(chalk.magenta.italic(`Kode Pairing Kamu :`), chalk.white.bold(`${code?.match(/.{1,4}/g)?.join('-') || code}`))
 	}
-		 } catch (err) {
-    console.error("❌ Error di startingBot:", err);
-    setTimeout(startingBot, 5000);
-  }
-}
 	
 //================================================================================
 	
