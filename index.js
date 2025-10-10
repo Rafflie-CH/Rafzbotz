@@ -45,8 +45,6 @@ await cleaningSession("./session")
 })()*/
 // ==================== [ GLOBAL ERROR HANDLER + AUTO RESTART ] ====================
 
-const { exec } = require('child_process');
-
 // Tangani error umum biar gak bikin Replit stop
 process.on('uncaughtException', (err) => {
   console.error('❌ Uncaught Exception:', err);
