@@ -85,6 +85,7 @@
     "node-os-utils": "^1.3.7",
     "node-upload-images": "latest",
     "node-webpmux": "^3.1.7",
+    "node-cron" : "latest",
     "npm": "^10.8.2",
     "object-query-string": "^1.2.0",
     "ocr-space-api-wrapper": "latest",
