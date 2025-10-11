@@ -86,6 +86,20 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server berjalan di port ${PORT}`);
 });
+
+// ==== CRON JOB ====
+const cron = require("node-cron");
+cron.schedule("*/1 * * * *", async () => {
+  console.log(chalk.cyan("⏰ Cronjob aktif: memeriksa update setiap 5 menit..."));
+  // Contoh: kamu bisa jalankan fungsi auto-update atau ping di sini
+  // misal: cek update GitHub, kirim pesan otomatis, dsb.
+  try {
+    // Contoh auto ping Replit (agar ga tidur)
+    await fetch(`https://4959fd53-7ed7-4552-ab76-2f97d4160dc9-00-1f51hguiwc1w8.spock.replit.dev/`);
+  } catch (e) {
+    console.error("Gagal ping:", e.message);
+  }
+});
 //================================================================================
 
 const DataBase = require('./source/database');
