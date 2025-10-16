@@ -5803,23 +5803,67 @@ break
 //=================================================================================
     
 
-case "bratvid": case "bratvideo": {
-if (!text) return m.reply(example('teksnya'))
-try {
-await Sky.sendMessage(m.chat, {react: {text: '🕖', key: m.key}})
-const axios = require('axios');
-let brat = `https://brat.siputzx.my.id/gif?text=${encodeURIComponent(text)}`;
-let response = await axios.get(brat, { responseType: "arraybuffer" });
-let videoBuffer = response.data;
-let stickerBuffer = await Sky.sendAsSticker(m.chat, videoBuffer, m, {
-packname: global.packname,
-})
-await Sky.sendMessage(m.chat, {react: {text: '✅', key: m.key}})
-} catch (err) {
-console.error("Error:", err);
+case "bratvid":
+case "bratvideo": {
+  if (!text) return m.reply(example('teksnya'));
+  try {
+    await Sky.sendMessage(m.chat, { react: { text: '🕖', key: m.key } });
+
+    const axios = require('axios');
+    const fs = require('fs');
+    const ffmpeg = require('fluent-ffmpeg');
+    const ffmpegPath = require('ffmpeg-static');
+    ffmpeg.setFfmpegPath(ffmpegPath);
+
+    // Ambil file dari API brat
+    const brat = `https://brat.siputzx.my.id/gif?text=${encodeURIComponent(text)}`;
+    const response = await axios.get(brat, { responseType: 'arraybuffer', validateStatus: () => true });
+
+    // Cek response valid
+    if (response.status !== 200 || !response.data || response.data.length < 5000) {
+      return m.reply("⚠️ API Brat error atau tidak mengirim file yang valid.");
+    }
+
+    console.log("Content-Type:", response.headers["content-type"]);
+    console.log("Data Size:", response.data.length);
+
+    // Simpan buffer ke file sementara
+    const tmpInput = "./brat.gif";
+    const tmpOutput = "./brat.webp";
+    fs.writeFileSync(tmpInput, response.data);
+
+    // Konversi GIF ke WebP dengan ffmpeg
+    await new Promise((resolve, reject) => {
+      ffmpeg(tmpInput)
+        .outputOptions([
+          "-vcodec", "libwebp",
+          "-vf", "fps=15,scale=512:-1:flags=lanczos",
+          "-lossless", "1",
+          "-preset", "default",
+          "-loop", "0",
+          "-an",
+          "-vsync", "0"
+        ])
+        .save(tmpOutput)
+        .on("end", resolve)
+        .on("error", reject);
+    });
+
+    // Kirim stiker ke chat
+    const stickerBuffer = fs.readFileSync(tmpOutput);
+    await Sky.sendMessage(m.chat, { sticker: stickerBuffer }, { quoted: m });
+    await Sky.sendMessage(m.chat, { react: { text: '✅', key: m.key } });
+
+    // Bersihkan file sementara
+    fs.unlinkSync(tmpInput);
+    fs.unlinkSync(tmpOutput);
+
+  } catch (err) {
+    console.error("Error:", err);
+    m.reply("❌ Gagal membuat stiker Brat. Coba lagi nanti.");
+  }
 }
-}
-break
+break;
 
     
 //===================================================================================
@@ -10174,7 +10218,7 @@ case 'V':
   break;
 case 'w':
 case 'W':
-  AlphabetandNumbers = '🆆';
+  AlphabetandNumbers = '??';
   break;
 case 'x':
 case 'X':
@@ -15282,7 +15326,552 @@ case 'stt2but': {
 }
 break; // Tambahkan titik koma di akhir blok case
 
-    
+//=======================================================
+case 'wahyu':
+case 'wahyuai': {
+    const text = args.length > 0 ? args.join(" ") : "Perkenalkan diri anda"  // default kalau kosong
+
+    await Sky.sendMessage(m.chat, { react: { text: '🕒', key: m.key } })
+
+    // fungsi untuk rapihin format biar sesuai WA
+    function cleanResponse(txt) {
+        let blocks = []
+        // Simpan code block dulu
+        txt = txt.replace(/```([\s\S]*?)```/g, (m, code) => {
+            let token = `__CODEBLOCK${blocks.length}__`
+            blocks.push(code)
+            return token
+        })
+
+        txt = txt
+            // Bold: **teks** => *teks*
+            .replace(/\*\*(.*?)\*\*/g, '*$1*')
+            // Fix *`teks`* => `teks`
+            .replace(/\*`([^`]+)`\*/g, '`$1`')
+            // Hapus * sisa yang berdiri sendiri
+            .replace(/(^|[^*])\*([^*]|$)/g, '$1$2')
+            // Rapihin spasi
+            .trim()
+
+        // Balikin code block
+        txt = txt.replace(/__CODEBLOCK(\d+)__/g, (m, i) => {
+            return "```" + blocks[i] + "```"
+        })
+
+        return txt
+    }
+
+    try {
+        let responAi;
+
+        if (/image/.test(mime)) {
+            let media = await Sky.downloadAndSaveMediaMessage(qmsg)
+            const { ImageUploadService } = require('node-upload-images')
+            const service = new ImageUploadService('pixhost.to')
+            let { directLink } = await service.uploadFromBinary(fs.readFileSync(media), 'Rafzbot.png')
+            let fotoUrl = directLink.toString()
+            await fs.unlinkSync(media)
+
+            let url = `https://api.siputzx.my.id/api/ai/gemini-lite?prompt=Prompt%20sistem%20anda%20adalah%3A%20Nama%20anda%20adalah%20Wahyu%2C%20anda%20orangnya%20asik%2C%20gaul%20suka%20bercanda%2C%20kamu%20adalah%20AI%20yang%20suka%20membantu%20dan%20bisa%20baca%20foto.%20cara%20menggunakan%20ai%20anda%20adalah%20dengan%20mengetik%20.wahyu%20atau%20.wahyuai%20contoh%20.wahyu%20hai%5CnPertanyaan%20nya%3A%20${encodeURIComponent(text)}&imgUrl=${encodeURIComponent(fotoUrl)}`
+            let res = await fetch(url)
+            let data = await res.json()
+            responAi = data.data.parts[0].text
+        } else {
+            let url = `https://api.siputzx.my.id/api/ai/gemini?text=Prompt%20sistem%20anda%20adalah%3A%20Nama%20anda%20adalah%20Wahyu%2C%20anda%20orangnya%20asik%2C%20gaul%20suka%20bercanda%2C%20kamu%20adalah%20AI%20yang%20suka%20membantu%20dan%20bisa%20baca%20foto.%20cara%20menggunakan%20ai%20anda%20adalah%20dengan%20mengetik%20.wahyu%20atau%20.wahyuai%20contoh%20.wahyu%20hai%5CnPertanyaan%20nya%3A%20${encodeURIComponent(text)}&cookie=AIzaSyCbEX8el6R7dXS-apyXEBnrTSn36C9wzbs`
+            let res = await fetch(url)
+            let data = await res.json()
+            responAi = data.data.response
+        }
+
+        // rapihin sebelum dikirim
+        responAi = cleanResponse(responAi)
+        m.reply(responAi)
+
+    } catch (e) {
+        console.log(e)
+        m.reply("❌ Gagal memproses permintaan.")
+    }
+
+    await Sky.sendMessage(m.chat, { react: { text: '✅', key: m.key } })
+}
+break
+ //=======================================================
+
+case 'ciqc': {
+  let splitText = text.split("|").map(t => t.trim());
+
+  if (splitText.length < 5) {
+    return Reply(`Format salah!\nGunakan: ${prefix+command} pesan|18:00|Provider|100|4`);
+  }
+
+  const pesan = splitText[0];
+  const jam = splitText[1];
+  let provider = splitText[2];
+  const baterai = parseInt(splitText[3]);
+  const signal = parseInt(splitText[4]);
+
+  // ✅ Validasi pesan
+  if (!pesan) {
+    return Reply(`Pesan tidak boleh kosong!\nContoh: ${prefix+command} hai|18:00|Telkomsel|50|3`);
+  }
+
+  // ✅ Validasi jam (format HH:MM)
+  if (!/^\d{2}:\d{2}$/.test(jam)) {
+    return Reply(`Format jam salah!\nContoh: ${prefix+command} hai|18:00|Telkomsel|50|3`);
+  }
+
+  // ✅ Validasi baterai
+  if (isNaN(baterai) || baterai < 1 || baterai > 100) {
+    return Reply(`Baterai harus 1 - 100%\nContoh: ${prefix+command} hai|18:00|Telkomsel|50|3`);
+  }
+
+  // ✅ Validasi sinyal
+  if (isNaN(signal) || signal < 1 || signal > 4) {
+    return Reply(`Sinyal harus 1 - 4 bar\nContoh: ${prefix+command} hai|18:00|Telkomsel|50|3`);
+  }
+
+  // ✅ Format provider (max 12 huruf → potong dan kasih "…")
+  provider = provider.toUpperCase();
+  if (provider.length > 12) {
+    provider = provider.slice(0, 12) + "…";
+  }
+
+  const res = `https://brat.siputzx.my.id/iphone-quoted?time=${encodeURIComponent(jam)}&messageText=${encodeURIComponent(pesan)}&carrierName=${encodeURIComponent(provider)}&batteryPercentage=${baterai}&signalStrength=${signal}`;
+
+  await Sky.sendMessage(m.chat, { image: { url: res } });
+}
+break;
+//=======================================================
+// =====================
+// CASE: nokos / tempnumber  (final siap paste)
+// =====================
+case "nokos":
+case "tempnumber": {
+  const fs = require("fs");
+  const axios = require("axios");
+  const cheerio = require("cheerio");
+  const path = require("path");
+
+  // hanya privat
+  if (m.isGroup) return Reply(mess.private);
+
+  // path absolut di container
+  const dirPath = path.join(process.cwd(), "library/database/sampah");
+  const filePath = path.join(dirPath, "sessions.json");
+  if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath, { recursive: true });
+  if (!fs.existsSync(filePath)) fs.writeFileSync(filePath, JSON.stringify({}));
+
+  const load = () => {
+    try {
+      return JSON.parse(fs.readFileSync(filePath, "utf8") || "{}");
+    } catch {
+      return {};
+    }
+  };
+  const save = (data) => fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+
+  let sessions = load();
+  const user = m.sender;
+  global.tempSessions = global.tempSessions || {};
+
+  const formatTime = sec => {
+    const m_ = String(Math.floor(sec / 60)).padStart(2, "0");
+    const s_ = String(sec % 60).padStart(2, "0");
+    return `${m_}:${s_}`;
+  };
+
+  const defaultHeaders = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+  };
+
+  // ===== Luban (API tanpa key) =====
+  const getNumberLuban = async (country) => {
+    const res = await axios.get(`https://lubansms.com/v2/api/freeNumbers?countries=${country}`, { headers: defaultHeaders, timeout: 15000 });
+    if (!res.data || res.data.code !== 0) throw new Error("luban: invalid country");
+    const aktif = Array.isArray(res.data.msg) ? res.data.msg.filter(n => !n.is_archive) : [];
+    if (!aktif.length) throw new Error("luban: no active number");
+    const x = aktif[0];
+    return { provider: "luban", number: x.number, full: x.full_number, age: x.data_humans || "-" , messages: [] };
+  };
+
+  const getMessagesLuban = async (country, number) => {
+    try {
+      const res = await axios.get(`https://lubansms.com/v2/api/freeMessage?countries=${country}&number=${number}`, { headers: defaultHeaders, timeout: 15000 });
+      if (!res.data || res.data.code !== 0) return [];
+      return Array.isArray(res.data.msg) ? res.data.msg.map(x => ({ from: x.in_number || "Unknown", text: x.text || "(kosong)", time: x.created_at })) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  // ===== Scraper: receive-smss.com (contoh) =====
+  const scrapeReceiveSmss = async (country) => {
+    try {
+      const url = `https://receive-smss.com/country/${encodeURIComponent(country)}`;
+      const res = await axios.get(url, { headers: defaultHeaders, timeout: 15000 });
+      const $ = cheerio.load(res.data);
+      // coba temukan link angka/halaman nomor
+      const linkEls = $("a[href]").filter((i, el) => {
+        const h = $(el).attr("href") || "";
+        return /number|phone|sms/i.test(h) || $(el).hasClass("number");
+      }).toArray();
+
+      for (const el of linkEls) {
+        try {
+          const href = $(el).attr("href");
+          if (!href) continue;
+          await new Promise(r => setTimeout(r, 250));
+          const absolute = new URL(href, url).href;
+          const detail = await axios.get(absolute, { headers: defaultHeaders, timeout: 15000 });
+          const $$ = cheerio.load(detail.data);
+          const num = $$("h1, .phone, .number").first().text().trim().replace(/\D/g, "");
+          const msgs = [];
+          $$(".inbox .msg, .message, .sms-list li, .smses .sms").each((i, item) => {
+            const from = $$(item).find(".from, .source").text().trim() || "Unknown";
+            const text = $$(item).find(".text, .message-text").text().trim() || $$(item).text().trim();
+            const time = $$(item).find(".time, .date").text().trim() || new Date().toISOString();
+            if (text) msgs.push({ from, text, time });
+          });
+          if (num) return { provider: "receive-smss", number: num, full: num, age: "?", messages: msgs };
+        } catch (e) {
+          continue;
+        }
+      }
+      throw new Error("receive-smss: no number/sms");
+    } catch (e) {
+      throw new Error("receive-smss: " + e.message);
+    }
+  };
+
+  // ===== Scraper: sms24.me =====
+  const scrapeSms24 = async (country) => {
+    try {
+      const url = `https://sms24.me/${encodeURIComponent(country)}`;
+      const res = await axios.get(url, { headers: defaultHeaders, timeout: 15000 });
+      const $ = cheerio.load(res.data);
+      const nodes = $("a[href*='/number/'], a[href*='number']").toArray();
+      for (const n of nodes) {
+        try {
+          const href = $(n).attr("href");
+          if (!href) continue;
+          await new Promise(r => setTimeout(r, 250));
+          const detail = await axios.get(new URL(href, url).href, { headers: defaultHeaders, timeout: 15000 });
+          const $$ = cheerio.load(detail.data);
+          const num = $$("h1, .phone, .number").first().text().trim().replace(/\D/g, "");
+          const msgs = [];
+          $$(".smses .sms, .inbox .sms, .message-item, .sms-list li").each((i, el) => {
+            const from = $$(el).find(".source, .from").text().trim() || "Unknown";
+            const text = $$(el).find(".text, .sms-text").text().trim() || $$(el).text().trim();
+            const time = $$(el).find(".date, .time").text().trim() || new Date().toISOString();
+            if (text) msgs.push({ from, text, time });
+          });
+          if (num) return { provider: "sms24", number: num, full: num, age: "?", messages: msgs };
+        } catch (e) {
+          continue;
+        }
+      }
+      throw new Error("sms24: no number/sms");
+    } catch (e) {
+      throw new Error("sms24: " + e.message);
+    }
+  };
+
+  // ===== Scraper: receivefreesms.com =====
+  const scrapeReceiveFreeSms = async (country) => {
+    try {
+      const url = `https://receivefreesms.com/country/${encodeURIComponent(country)}`;
+      const res = await axios.get(url, { headers: defaultHeaders, timeout: 15000 });
+      const $ = cheerio.load(res.data);
+      const entries = $("a[href*='number'], a[href*='/number/']").toArray();
+      for (const el of entries) {
+        try {
+          const href = $(el).attr("href");
+          if (!href) continue;
+          await new Promise(r => setTimeout(r, 250));
+          const detail = await axios.get(new URL(href, url).href, { headers: defaultHeaders, timeout: 15000 });
+          const $$ = cheerio.load(detail.data);
+          const num = $$("h1, .num, .phone").first().text().trim().replace(/\D/g, "");
+          const msgs = [];
+          $$(".sms-list li, .messages .msg, .sms-item").each((i, it) => {
+            const from = $$(it).find(".from, .source").text().trim() || "Unknown";
+            const text = $$(it).find(".text, .sms-text").text().trim() || $$(it).text().trim();
+            const time = $$(it).find(".time, .date").text().trim() || new Date().toISOString();
+            if (text) msgs.push({ from, text, time });
+          });
+          if (num) return { provider: "receivefreesms", number: num, full: num, age: "?", messages: msgs };
+        } catch (e) {
+          continue;
+        }
+      }
+      throw new Error("receivefreesms: no number/sms");
+    } catch (e) {
+      throw new Error("receivefreesms: " + e.message);
+    }
+  };
+
+  // ===== Generic fallback (luban -> scrapers) =====
+  const getNumberFallback = async (country) => {
+    // try luban first
+    try {
+      const lub = await getNumberLuban(country);
+      lub.provider = "luban";
+      return lub;
+    } catch (e) {
+      // continue to scrapers
+    }
+    const scrapers = [scrapeReceiveSmss, scrapeSms24, scrapeReceiveFreeSms];
+    for (const fn of scrapers) {
+      try {
+        const r = await fn(country);
+        if (r && r.number) return r;
+      } catch (e) {
+        continue;
+      }
+    }
+    throw new Error("all-failed: no provider returned number");
+  };
+
+  // ===== Generic getMessages for stored session =====
+  const getMessagesGeneric = async (session) => {
+    if (!session.provider) return [];
+    if (session.provider === "luban") return await getMessagesLuban(session.country, session.number);
+    try {
+      if (session.provider === "receive-smss") return (await scrapeReceiveSmss(session.country)).messages || [];
+      if (session.provider === "sms24") return (await scrapeSms24(session.country)).messages || [];
+      if (session.provider === "receivefreesms") return (await scrapeReceiveFreeSms(session.country)).messages || [];
+    } catch {
+      return [];
+    }
+    return [];
+  };
+
+  // Jika tanpa argumen → tampilkan daftar negara Luban
+  if (!text) {
+    await Sky.sendMessage(m.chat, { react: { text: "🌍", key: m.key } });
+    try {
+      const { data } = await axios.get("https://lubansms.com/v2/api/freeCountries", { headers: defaultHeaders, timeout: 15000 });
+      const list = [];
+      for (const [i, c] of (data.msg || []).filter(c => c.online).entries()) {
+        try {
+          const num = await getNumberLuban(c.name.toLowerCase());
+          list.push(`🌍 ${i + 1}. *${c.name}*\n📞 Nomor aktif: 1\n⏳ Umur nomor: ${num.age}`);
+        } catch {
+          list.push(`🌍 ${i + 1}. *${c.name}*\n📞 Nomor aktif: 0\n⏳ Umur nomor: ?`);
+        }
+      }
+      return m.reply(`🌎 *Daftar Negara (sumber: Luban)*:\n\n${list.join("\n\n")}\n\n📌 Contoh: .nokos russia`);
+    } catch (e) {
+      return m.reply("❌ Gagal ambil daftar negara dari Luban.");
+    }
+  }
+
+  // Hapus sesi lama user ini (jika ada)
+  if (global.tempSessions[user]) {
+    clearInterval(global.tempSessions[user].interval);
+    delete global.tempSessions[user];
+  }
+
+  // Ambil nomor (fallback luban -> scrapers)
+  const nomor = await getNumberFallback(text.toLowerCase()).catch(e => ({ error: e.message }));
+  if (nomor.error) return m.reply(`❌ ${nomor.error}`);
+
+  const session = {
+    user,
+    provider: nomor.provider || "scraper",
+    country: text,
+    number: nomor.number,
+    full: nomor.full || nomor.number,
+    age: nomor.age || "-",
+    startAt: Date.now(),
+    maxSec: 600,
+    lastMessages: nomor.messages || [],
+    msgKey: null
+  };
+
+  // simpan & kirim pesan utama
+  const msgText =
+    `📞 *Nomor Sementara (${session.country.toUpperCase()})*\n\n` +
+    `📱 Nomor: +${session.full}\n` +
+    `⏳ Umur nomor: ${session.age}\n` +
+    `⏰ Waktu tersisa: ${formatTime(session.maxSec)}\n\n` +
+    `💬 *Pesan Masuk:*\nBelum ada pesan yang masuk...`;
+
+  const infoMsg = await Sky.sendMessage(m.chat, { text: msgText });
+  session.msgKey = { remoteJid: m.chat, id: infoMsg.key.id, fromMe: true };
+
+  // tombol kontrol (kirim terpisah)
+  await Sky.sendMessage(m.chat, {
+    text: "🎛️ Kontrol Sesi:",
+    buttons: [
+      { buttonId: ".stopnokos", buttonText: { displayText: "🛑 Stop" }, type: 1 },
+      { buttonId: ".changenumber", buttonText: { displayText: "🆕 Change Number" }, type: 1 },
+      { buttonId: ".changecountry", buttonText: { displayText: "🌍 Change Country" }, type: 1 },
+      { buttonId: ".resettimer", buttonText: { displayText: "♻️ Reset Time" }, type: 1 }
+    ],
+    headerType: 1
+  });
+
+  // save session
+  global.tempSessions[user] = session;
+  sessions[user] = session;
+  save(sessions);
+
+  // Interval: cek pesan & update countdown setiap 3 detik
+  session.interval = setInterval(async () => {
+    const s = global.tempSessions[user];
+    if (!s) return;
+    const elapsed = Math.floor((Date.now() - s.startAt) / 1000);
+    const remain = Math.max(0, s.maxSec - elapsed);
+
+    // Ambil pesan
+    const msgs = await (async () => {
+      if (s.provider === "luban") return await getMessagesLuban(s.country, s.number);
+      return await getMessagesGeneric(s);
+    })().catch(() => []);
+
+    let formatted = "Belum ada pesan yang masuk...";
+    if (msgs && msgs.length) {
+      formatted = msgs.map((x, i) => `📩 *${i + 1}.* Dari: ${x.from}\n🕒 ${x.time}\n💬 ${x.text}`).join("\n\n");
+    }
+
+    const textUpdate =
+      `📞 *Nomor Sementara (${s.country.toUpperCase()})*\n\n` +
+      `📱 Nomor: +${s.full}\n` +
+      `⏳ Umur nomor: ${s.age}\n` +
+      `⏰ Waktu tersisa: ${formatTime(remain)}\n\n` +
+      `💬 *Pesan Masuk:*\n${formatted}`;
+
+    try {
+      await Sky.sendMessage(m.chat, { edit: s.msgKey, text: textUpdate });
+    } catch {
+      // fallback: kirim pesan baru (jika edit gagal)
+      await Sky.sendMessage(m.chat, { text: textUpdate });
+    }
+
+    // reaksi bila pesan baru
+    if ((msgs || []).length > (s.lastMessages || []).length) {
+      await Sky.sendMessage(m.chat, { react: { text: "💬", key: m.key } });
+      s.lastMessages = msgs;
+    }
+
+    if (remain <= 0) {
+      clearInterval(s.interval);
+      delete global.tempSessions[user];
+      delete sessions[user];
+      save(sessions);
+      await m.reply(`⏹️ Waktu 10 menit habis. Nomor +${s.full} ditutup.`);
+    } else {
+      // simpan sesi tiap tick
+      sessions[user] = s;
+      save(sessions);
+    }
+  }, 3000);
+}
+break;
+
+// =====================
+// Tombol handler: stop / change / reset / change country tombol list
+// =====================
+case "stopnokos":
+case "changenumber":
+case "changecountry":
+case "resettimer": {
+  if (m.isGroup) return Reply(mess.private);
+
+  const fs = require("fs");
+  const path = require("path");
+  const axios = require("axios");
+  const cheerio = require("cheerio");
+
+  const filePath = path.join(process.cwd(), "library/database/sampah/sessions.json");
+  if (!fs.existsSync(filePath)) return m.reply("⚠️ Tidak ada sesi aktif.");
+  const sessions = JSON.parse(fs.readFileSync(filePath, "utf8") || "{}");
+  const user = m.sender;
+  const s = sessions[user];
+  if (!s) return m.reply("⚠️ Tidak ada sesi aktif.");
+
+  // re-declare helper (agar tidak undefined)
+  const defaultHeaders = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+  };
+
+  const getNumberLuban = async (country) => {
+    const res = await axios.get(`https://lubansms.com/v2/api/freeNumbers?countries=${country}`, { headers: defaultHeaders, timeout: 15000 });
+    const aktif = Array.isArray(res.data?.msg) ? res.data.msg.filter(n => !n.is_archive) : [];
+    if (!aktif.length) throw new Error("no number");
+    const x = aktif[0];
+    return { provider: "luban", number: x.number, full: x.full_number, age: x.data_humans || "-" };
+  };
+
+  const scrapeReceiveSmss = async (country) => {
+    const url = `https://receive-smss.com/country/${encodeURIComponent(country)}`;
+    const res = await axios.get(url, { headers: defaultHeaders, timeout: 15000 });
+    const $ = cheerio.load(res.data);
+    const first = $("a.number").first();
+    const href = first.attr("href") || "";
+    const absolute = href ? new URL(href, url).href : null;
+    if (!absolute) throw new Error("no number");
+    const detail = await axios.get(absolute, { headers: defaultHeaders, timeout: 15000 });
+    const $$ = cheerio.load(detail.data);
+    const num = $$("h1, .phone, .number").first().text().trim().replace(/\D/g, "");
+    if (!num) throw new Error("no number");
+    return { provider: "receive-smss", number: num, full: num, age: "?" };
+  };
+
+  const getNumberFallback = async (country) => {
+    try { return await getNumberLuban(country); } catch {}
+    try { return await scrapeReceiveSmss(country); } catch {}
+    throw new Error("no provider");
+  };
+
+  switch (command) {
+    case "stopnokos":
+      clearInterval(global.tempSessions?.[user]?.interval);
+      delete global.tempSessions[user];
+      delete sessions[user];
+      fs.writeFileSync(filePath, JSON.stringify(sessions, null, 2));
+      return m.reply("🛑 Sesi dihentikan.");
+
+    case "changenumber": {
+      try {
+        const alt = await getNumberFallback(s.country);
+        s.provider = alt.provider; s.number = alt.number; s.full = alt.full; s.age = alt.age || s.age;
+        s.startAt = Date.now();
+        sessions[user] = s;
+        fs.writeFileSync(filePath, JSON.stringify(sessions, null, 2));
+        return m.reply(`✅ Nomor berhasil diganti!\n📱 +${s.full}\n⏳ Umur: ${s.age}`);
+      } catch (e) {
+        return m.reply("❌ Gagal mengganti nomor: " + e.message);
+      }
+    }
+
+    case "changecountry": {
+      // ambil list negara dari Luban, tampilkan sebagai pesan supaya user klik/ketik
+      try {
+        const { data } = await axios.get("https://lubansms.com/v2/api/freeCountries", { headers: defaultHeaders, timeout: 15000 });
+        const list = (data.msg || []).filter(c => c.online).map((c, i) => `🌍 ${i + 1}. ${c.name}`).join("\n");
+        // hentikan sesi sekarang
+        clearInterval(global.tempSessions?.[user]?.interval);
+        delete global.tempSessions[user];
+        delete sessions[user];
+        fs.writeFileSync(filePath, JSON.stringify(sessions, null, 2));
+        // kirim list dan petunjuk
+        return m.reply(`🌍 *Pilih negara baru (klik/ketik nama negara):*\n\n${list}\n\n📌 Contoh: .nokos france`);
+      } catch (e) {
+        return m.reply("❌ Gagal ambil daftar negara dari Luban.");
+      }
+    }
+
+    case "resettimer":
+      s.startAt = Date.now();
+      sessions[user] = s;
+      fs.writeFileSync(filePath, JSON.stringify(sessions, null, 2));
+      return m.reply("♻️ Timer direset ke 10 menit.");
+  }
+}
+break;
 //=======================[ Akhir Case ]===============================
 
 default:
