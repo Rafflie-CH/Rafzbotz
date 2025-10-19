@@ -989,20 +989,81 @@ setInterval(() => {
 }, 60 * 1000)
 
 // Ambil list file dari folder publik Google Drive
+// Ganti fungsi getDriveFiles lama dengan versi yang lebih robust ini
 async function getDriveFiles(folderId) {
-    const html = await (await fetch(`https://drive.google.com/drive/folders/${folderId}`)).text()
-    const regex = /"([^"]+)",\[\]\s*,\s*\["https:\/\/drive\.google\.com\/file\/d\/([^\/]+)\//g
-    const files = []
-    let match
-    while ((match = regex.exec(html)) !== null) {
-        files.push({
-            name: match[1],
-            url: `https://drive.google.com/uc?export=download&id=${match[2]}`
-        })
-    }
-    return files
-}
+  const urlsToTry = [
+    // embedded view (sering menampilkan nama file jelas)
+    `https://drive.google.com/embeddedfolderview?id=${folderId}#list`,
+    // folder normal
+    `https://drive.google.com/drive/folders/${folderId}`
+  ]
 
+  const files = new Map() // pakai Map supaya unik {id -> {name,url}}
+
+  for (const url of urlsToTry) {
+    try {
+      const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } })
+      if (!res.ok) continue
+      const html = await res.text()
+
+      // 1) Cari pola data-id / data-name (dipakai beberapa layout)
+      const reData = /data-id="([^"]+)"\s+data-name="([^"]+)"/g
+      let m
+      while ((m = reData.exec(html)) !== null) {
+        const id = m[1]
+        const name = m[2]
+        files.set(id, { name, url: `https://drive.google.com/uc?export=download&id=${id}` })
+      }
+
+      // 2) Cari pola anchor /file/d/<id>/view dengan teks nama file di sekitar
+      // contoh: /file/d/ID/view" ... >File Name<
+      const reAnchor = /\/file\/d\/([a-zA-Z0-9_-]{10,})\/view[^>]*>[^<]*<\/a>\s*<\/div>\s*<\/div>\s*<div[^>]*>([^<]+)<\/div>/g
+      // fallback simpler
+      const reSimple = /\/file\/d\/([a-zA-Z0-9_-]{10,})\/view[^>]*">([^<]+)</g
+
+      while ((m = reAnchor.exec(html)) !== null) {
+        const id = m[1], name = m[2].trim()
+        files.set(id, { name, url: `https://drive.google.com/uc?export=download&id=${id}` })
+      }
+      while ((m = reSimple.exec(html)) !== null) {
+        const id = m[1], name = m[2].trim()
+        files.set(id, { name, url: `https://drive.google.com/uc?export=download&id=${id}` })
+      }
+
+      // 3) Cari pola data in embedded JSON (kadang nama ada di "title" fields)
+      const reJsonTitle = /"title":"([^"]+)".*?"id":"([a-zA-Z0-9_-]{10,})"/g
+      while ((m = reJsonTitle.exec(html)) !== null) {
+        const name = m[1], id = m[2]
+        files.set(id, { name, url: `https://drive.google.com/uc?export=download&id=${id}` })
+      }
+
+      // jika sudah ada hasil, bisa hentikan loop (tapi tetap lanjut agar lebih banyak)
+    } catch (e) {
+      console.error('getDriveFiles error for', url, e.message)
+    }
+  }
+
+  // ubah Map ke Array
+  const arr = Array.from(files.entries()).map(([id, v]) => ({ id, name: v.name, url: v.url }))
+
+  // jika kosong, coba lagi dengan request ke "drive.google.com/drive/folders/ID?hl=en"
+  if (arr.length === 0) {
+    try {
+      const res2 = await fetch(`https://drive.google.com/drive/folders/${folderId}?hl=en`, { headers: { 'User-Agent': 'Mozilla/5.0' } })
+      const html2 = await res2.text()
+      const reSimple2 = /\/file\/d\/([a-zA-Z0-9_-]{10,})\/view[^>]*">([^<]+)</g
+      let m2
+      while ((m2 = reSimple2.exec(html2)) !== null) {
+        const id = m2[1], name = m2[2].trim()
+        files.set(id, { name, url: `https://drive.google.com/uc?export=download&id=${id}` })
+      }
+    } catch (e) {
+      console.error('getDriveFiles fallback error', e.message)
+    }
+  }
+
+  return Array.from(files.entries()).map(([id, v]) => ({ id, name: v.name, url: v.url }))
+}
 
 //==============================================
 
