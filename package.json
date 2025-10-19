@@ -49,6 +49,7 @@
     "crypto.js": "^3.3.4",
     "dhn-api": "^1.0.0",
     "didyoumean": "^1.2.2",
+    "dotenv": "^16.0.3",
     "emoji-regex": "latest",
     "express": "^4.21.2",
     "ffmpeg": "^0.0.4",
@@ -117,7 +118,6 @@
     "yargs": "^17.6.2",
     "youtube-yts": "latest",
     "yt-search": "latest",
-    "dotenv": "^16.0.3",
     "yts": "latest"
   }
 }
