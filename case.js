@@ -16103,7 +16103,6 @@ break;
         const teks = `👤 *Profil Gacha Kamu*\n\n🎯 Total Poin: ${user.poin}\n🎲 Total Gacha: ${user.gacha}\n🔁 Sisa Limit: ${user.limit}/5\n\n📦 *Riwayat Gacha:*\n${hasilText}`
         Sky.sendMessage(m.chat, { text: teks }, { quoted: m })
     } break
-}
 //=======================[ Akhir Case ]===============================
 
 default:
