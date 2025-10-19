@@ -965,21 +965,24 @@ let isWelcomeDataLoaded = false; // Flag to ensure data is loaded only once
 await writeUserLastInteraction(userLastInteractions);
 
 // =========================
-// 🎲 FITUR GACHA WHATSAPP (FINAL BUILD)
+// 🎲 FITUR GACHA WHATSAPP (FINAL BUILD - API VERSION)
 // =========================
+
+require('dotenv').config()
+// Lokasi penyimpanan limit user
 const limitFile = path.join(__dirname, '/library/database/limit_spin.json')
 if (!fs.existsSync(limitFile)) fs.writeFileSync(limitFile, '[]')
 
 const loadLimitData = () => JSON.parse(fs.readFileSync(limitFile))
 const saveLimitData = (data) => {
     fs.writeFileSync(limitFile, JSON.stringify(data, null, 2))
-    // Kirim backup otomatis ke channel owner
-    Sky.sendMessage('0029VbBUCDiHwXb9QGiyXH0C@newsletter', { 
-        text: `📦 *Backup Data Limit Spin:*\n\`\`\`${JSON.stringify(data, null, 2)}\`\`\`` 
+    // Backup otomatis ke channel owner
+    Sky.sendMessage('0029VbBUCDiHwXb9QGiyXH0C@newsletter', {
+        text: `📦 *Backup Data Limit Spin:*\n\`\`\`${JSON.stringify(data, null, 2)}\`\`\``
     })
 }
 
-// Reset otomatis setiap jam 00:00
+// Reset otomatis tiap jam 00:00
 setInterval(() => {
     const now = new Date()
     if (now.getHours() === 0 && now.getMinutes() === 0) {
@@ -988,81 +991,28 @@ setInterval(() => {
     }
 }, 60 * 1000)
 
-// Ambil list file dari folder publik Google Drive
-// Ganti fungsi getDriveFiles lama dengan versi yang lebih robust ini
+// =========================
+// 🔗 Ambil file dari Google Drive (API KEY)
+// =========================
 async function getDriveFiles(folderId) {
-  const urlsToTry = [
-    // embedded view (sering menampilkan nama file jelas)
-    `https://drive.google.com/embeddedfolderview?id=${folderId}#list`,
-    // folder normal
-    `https://drive.google.com/drive/folders/${folderId}`
-  ]
-
-  const files = new Map() // pakai Map supaya unik {id -> {name,url}}
-
-  for (const url of urlsToTry) {
     try {
-      const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } })
-      if (!res.ok) continue
-      const html = await res.text()
+        const apiKey = process.env.GDRIVE_API_KEY
+        const endpoint = `https://www.googleapis.com/drive/v3/files?q='${folderId}' in parents and trashed=false&fields=files(id,name,mimeType)&key=${apiKey}`
 
-      // 1) Cari pola data-id / data-name (dipakai beberapa layout)
-      const reData = /data-id="([^"]+)"\s+data-name="([^"]+)"/g
-      let m
-      while ((m = reData.exec(html)) !== null) {
-        const id = m[1]
-        const name = m[2]
-        files.set(id, { name, url: `https://drive.google.com/uc?export=download&id=${id}` })
-      }
+        const res = await fetch(endpoint)
+        const data = await res.json()
 
-      // 2) Cari pola anchor /file/d/<id>/view dengan teks nama file di sekitar
-      // contoh: /file/d/ID/view" ... >File Name<
-      const reAnchor = /\/file\/d\/([a-zA-Z0-9_-]{10,})\/view[^>]*>[^<]*<\/a>\s*<\/div>\s*<\/div>\s*<div[^>]*>([^<]+)<\/div>/g
-      // fallback simpler
-      const reSimple = /\/file\/d\/([a-zA-Z0-9_-]{10,})\/view[^>]*">([^<]+)</g
+        if (data.error) throw new Error(data.error.message)
+        if (!data.files || data.files.length === 0) throw new Error("⚠️ Tidak ditemukan file gacha di folder Google Drive.")
 
-      while ((m = reAnchor.exec(html)) !== null) {
-        const id = m[1], name = m[2].trim()
-        files.set(id, { name, url: `https://drive.google.com/uc?export=download&id=${id}` })
-      }
-      while ((m = reSimple.exec(html)) !== null) {
-        const id = m[1], name = m[2].trim()
-        files.set(id, { name, url: `https://drive.google.com/uc?export=download&id=${id}` })
-      }
-
-      // 3) Cari pola data in embedded JSON (kadang nama ada di "title" fields)
-      const reJsonTitle = /"title":"([^"]+)".*?"id":"([a-zA-Z0-9_-]{10,})"/g
-      while ((m = reJsonTitle.exec(html)) !== null) {
-        const name = m[1], id = m[2]
-        files.set(id, { name, url: `https://drive.google.com/uc?export=download&id=${id}` })
-      }
-
-      // jika sudah ada hasil, bisa hentikan loop (tapi tetap lanjut agar lebih banyak)
-    } catch (e) {
-      console.error('getDriveFiles error for', url, e.message)
+        return data.files.map(f => ({
+            name: f.name,
+            url: `https://drive.google.com/uc?id=${f.id}`
+        }))
+    } catch (err) {
+        console.error(err)
+        throw new Error("❌ Gagal mengambil data dari Google Drive API.")
     }
-  }
-
-  // ubah Map ke Array
-  const arr = Array.from(files.entries()).map(([id, v]) => ({ id, name: v.name, url: v.url }))
-
-  // jika kosong, coba lagi dengan request ke "drive.google.com/drive/folders/ID?hl=en"
-  if (arr.length === 0) {
-    try {
-      const res2 = await fetch(`https://drive.google.com/drive/folders/${folderId}?hl=en`, { headers: { 'User-Agent': 'Mozilla/5.0' } })
-      const html2 = await res2.text()
-      const reSimple2 = /\/file\/d\/([a-zA-Z0-9_-]{10,})\/view[^>]*">([^<]+)</g
-      let m2
-      while ((m2 = reSimple2.exec(html2)) !== null) {
-        const id = m2[1], name = m2[2].trim()
-        files.set(id, { name, url: `https://drive.google.com/uc?export=download&id=${id}` })
-      }
-    } catch (e) {
-      console.error('getDriveFiles fallback error', e.message)
-    }
-  }
-
-  return Array.from(files.entries()).map(([id, v]) => ({ id, name: v.name, url: v.url }))
 }
 
 //==============================================
