@@ -967,7 +967,6 @@ await writeUserLastInteraction(userLastInteractions);
 // =========================
 // 🎲 FITUR GACHA WHATSAPP (FINAL BUILD)
 // =========================
-
 const limitFile = path.join(__dirname, '/library/database/limit_spin.json')
 if (!fs.existsSync(limitFile)) fs.writeFileSync(limitFile, '[]')
 
@@ -1003,6 +1002,8 @@ async function getDriveFiles(folderId) {
     }
     return files
 }
+
+
 //==============================================
 
 switch (command) {
