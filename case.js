@@ -965,7 +965,7 @@ let isWelcomeDataLoaded = false; // Flag to ensure data is loaded only once
 await writeUserLastInteraction(userLastInteractions);
 
 // =========================
-// 🎲 FITUR GACHA WHATSAPP
+// 🎲 FITUR GACHA WHATSAPP (FINAL BUILD)
 // =========================
 
 const limitFile = path.join(__dirname, '/library/database/limit_spin.json')
@@ -974,6 +974,7 @@ if (!fs.existsSync(limitFile)) fs.writeFileSync(limitFile, '[]')
 const loadLimitData = () => JSON.parse(fs.readFileSync(limitFile))
 const saveLimitData = (data) => {
     fs.writeFileSync(limitFile, JSON.stringify(data, null, 2))
+    // Kirim backup otomatis ke channel owner
     Sky.sendMessage('0029VbBUCDiHwXb9QGiyXH0C@newsletter', { 
         text: `📦 *Backup Data Limit Spin:*\n\`\`\`${JSON.stringify(data, null, 2)}\`\`\`` 
     })
@@ -1002,7 +1003,6 @@ async function getDriveFiles(folderId) {
     }
     return files
 }
-
 //==============================================
 
 switch (command) {
@@ -15981,13 +15981,20 @@ case 'mintalimit': {
         return m.reply('📎 Kamu harus reply file script bot yang mau dikasih!')
 
     const doc = m.quoted.message.documentMessage
-    const reqInfo = `📨 *Permintaan Tambah Limit*\n\n👤 Pengguna: @${m.sender.split('@')[0]}\n📈 Tingkatan: ${text}\n📎 File: ${doc.fileName}\n\nKetik tombol di bawah untuk menyetujui permintaan ini.`
+    const reqInfo = `📨 *Permintaan Tambah Limit*\n\n👤 Pengguna: @${m.sender.split('@')[0]}\n📈 Tingkatan: ${text}\n📎 File: ${doc.fileName}\n\nPilih tindakan di bawah ini:`
     const interactiveButtons = [
         {
             name: "quick_reply",
             buttonParamsJson: JSON.stringify({
                 display_text: "✅ Setujui Limit",
                 id: `.approvelimit ${m.sender}`
+            })
+        },
+        {
+            name: "quick_reply",
+            buttonParamsJson: JSON.stringify({
+                display_text: "❌ Tolak Permintaan",
+                id: `.rejectlimit ${m.sender}`
             })
         }
     ]
@@ -16015,6 +16022,48 @@ case 'approvelimit': {
 
     Sky.sendMessage(target, { text: `✅ Permintaan limit kamu telah disetujui oleh Owner!\n📦 Tambahan: +5 limit.` })
     Sky.sendMessage(m.chat, { text: `✅ Limit user ${target} berhasil ditambah 5.` })
+}
+break
+
+// =========================
+// CASE REJECT LIMIT
+// =========================
+case 'rejectlimit': {
+    if (!isOwner) return
+    const target = args[0]
+    if (!target) return m.reply('⚠️ Contoh: .rejectlimit 628xxxx@s.whatsapp.net')
+
+    Sky.sendMessage(target, { text: `❌ Permintaan limit kamu *ditolak* oleh Owner.\n\nSilakan coba lagi nanti atau kirim ulang permintaan dengan alasan yang lebih jelas.` })
+    Sky.sendMessage(m.chat, { text: `❌ Permintaan limit dari ${target} telah ditolak.` })
+}
+break
+
+// =========================
+// CASE ADD LIMIT (no tag, interaktif, auto backup)
+// =========================
+case 'addlimit': {
+    if (!isOwner) return
+    const nomor = args[0]
+    const jumlah = parseInt(args[1])
+    if (!nomor || isNaN(jumlah)) return m.reply('⚙️ Gunakan: .addlimit <nomor> <jumlah>\n\nContoh:\n.addlimit +62882019531122 10')
+
+    await Sky.sendMessage(m.chat, { react: { text: '⏳', key: m.key } })
+
+    let target = nomor.replace(/[^0-9]/g, '')
+    if (target.startsWith('0')) target = '62' + target.slice(1)
+    if (!target.endsWith('@s.whatsapp.net')) target = target + '@s.whatsapp.net'
+
+    const data = loadLimitData()
+    const user = data.find(u => u.user === target) || { user: target, limit: 5, gacha: 0, hasil: [], poin: 0 }
+    user.limit += jumlah
+    const idx = data.findIndex(u => u.user === target)
+    if (idx >= 0) data[idx] = user
+    else data.push(user)
+    saveLimitData(data)
+
+    await Sky.sendMessage(target, { text: `🎁 Kamu mendapatkan tambahan *${jumlah} limit* dari Owner!` })
+    await Sky.sendMessage(m.chat, { react: { text: '✅', key: m.key } })
+    Sky.sendMessage(m.chat, { text: `✅ Berhasil menambah *${jumlah} limit* untuk ${target}` })
 }
 break
 
