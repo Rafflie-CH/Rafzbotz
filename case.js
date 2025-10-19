@@ -15972,14 +15972,15 @@ break;
 
         await Sky.sendMessage(m.chat, { react: { text: '✅', key: m.key } })
 
-        await Sky.sendMessage(m.chat, {
-            document: { url: random.url },
-            fileName: random.name,
-            mimetype: random.name.endsWith('.zip') ? 'application/zip' : 'text/plain'
-        }, { quoted: m })
+const info = `🎲 *GACHA ${jenis} BERHASIL!*\n\n📁 Nama: ${random.name}\n⭐ Tingkat: ${rarity}\n🎯 Poin: +${poin}\n💰 Total Poin: ${userData.poin}\n🎲 Total Gacha: ${userData.gacha}\n🔁 Sisa Limit: ${userData.limit}/5`
 
-        const info = `🎲 *GACHA ${jenis} BERHASIL!*\n\n📁 Nama: ${random.name}\n⭐ Tingkat: ${rarity}\n🎯 Poin: +${poin}\n💰 Total Poin: ${userData.poin}\n🎲 Total Gacha: ${userData.gacha}\n🔁 Sisa Limit: ${userData.limit}/5`
-        Sky.sendMessage(m.chat, { text: info }, { quoted: m })
+await Sky.sendMessage(m.chat, {  
+    document: { url: random.url },  
+    fileName: random.name,  
+    mimetype: random.name.endsWith('.zip') ? 'application/zip' : 'text/plain',
+    caption: info
+}, { quoted: m })
+		
     } break
 
     // =========================
