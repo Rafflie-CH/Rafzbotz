@@ -15926,190 +15926,184 @@ case "resettimer": {
 break;
 
 // =========================
-// CASE GACHA
-// =========================
-case 'gacha':
-case 'gachasc':
-case 'gachamt': {
-    const sender = m.sender
-    const data = loadLimitData()
-    const userData = data.find(u => u.user === sender) || { user: sender, limit: 5, gacha: 0, hasil: [], poin: 0 }
+    // GACHA
+    // =========================
+    case 'gacha':
+    case 'gachasc':
+    case 'gachamt': {
+        const sender = m.sender
+        const data = loadLimitData()
+        const userData = data.find(u => u.user === sender) || { user: sender, limit: 5, gacha: 0, hasil: [], poin: 0 }
 
-    if (userData.limit <= 0) {
-        const teks = `🚫 *Limit Gacha Kamu Sudah Habis!*\n\nKamu bisa minta tambahan limit dengan cara:\n> .mintalimit <tingkatan>\n\n📎 Contoh:\n.mintalimit Langka (sambil reply script bot yang mau dikasih)`
-        return Sky.sendMessage(m.chat, { text: teks }, { quoted: m })
-    }
-
-    await Sky.sendMessage(m.chat, { react: { text: '⏳', key: m.key } }) // loading
-
-    let folderId, jenis
-    if (command === 'gacha' || command === 'gachamt') {
-        folderId = '1D-0EV7718184dZkzZc8ag5DXSM_hePDN'
-        jenis = 'Mentahan Teks'
-    } else {
-        folderId = '1zgbo3hUW0nxMqkK0rHcuhNwlIE5Q8Z_1'
-        jenis = 'Script Bot'
-    }
-
-    const files = await getDriveFiles(folderId)
-    if (!files.length) return m.reply('⚠️ Tidak ditemukan file gacha di folder Google Drive.')
-
-    const random = files[Math.floor(Math.random() * files.length)]
-    const tingkat = /\[([^\]]+)\]/.exec(random.name)
-    const rarity = tingkat ? tingkat[1] : 'Biasa'
-    const rarityPoint = { 'Biasa': 1, 'Langka': 3, 'Super Langka': 5, 'Rare': 3 }
-    const poin = rarityPoint[rarity] || 1
-
-    userData.limit -= 1
-    userData.gacha += 1
-    userData.poin += poin
-    userData.hasil.push({ nama: random.name, tingkat: rarity })
-
-    const idx = data.findIndex(u => u.user === sender)
-    if (idx >= 0) data[idx] = userData
-    else data.push(userData)
-    saveLimitData(data)
-
-    await Sky.sendMessage(m.chat, { react: { text: '✅', key: m.key } }) // selesai loading
-
-    await Sky.sendMessage(m.chat, {
-        document: { url: random.url },
-        fileName: random.name,
-        mimetype: random.name.endsWith('.zip') ? 'application/zip' : 'text/plain'
-    }, { quoted: m })
-
-    const info = `🎲 *GACHA ${jenis} BERHASIL!*\n\n📁 Nama: ${random.name}\n⭐ Tingkat: ${rarity}\n🎯 Poin: +${poin}\n💰 Total Poin: ${userData.poin}\n🎲 Total Gacha: ${userData.gacha}\n🔁 Sisa Limit: ${userData.limit}/5`
-    Sky.sendMessage(m.chat, { text: info }, { quoted: m })
-}
-break
-
-// =========================
-// CASE MINTA LIMIT
-// =========================
-case 'mintalimit': {
-    if (!text) return m.reply('⚠️ Gunakan: .mintalimit <tingkatan>\n\nContoh:\n.mintalimit Langka (reply script bot kamu)')
-
-    if (!m.quoted || !m.quoted.message?.documentMessage)
-        return m.reply('📎 Kamu harus reply file script bot yang mau dikasih!')
-
-    const doc = m.quoted.message.documentMessage
-    const reqInfo = `📨 *Permintaan Tambah Limit*\n\n👤 Pengguna: @${m.sender.split('@')[0]}\n📈 Tingkatan: ${text}\n📎 File: ${doc.fileName}\n\nPilih tindakan di bawah ini:`
-    const interactiveButtons = [
-        {
-            name: "quick_reply",
-            buttonParamsJson: JSON.stringify({
-                display_text: "✅ Setujui Limit",
-                id: `.approvelimit ${m.sender}`
-            })
-        },
-        {
-            name: "quick_reply",
-            buttonParamsJson: JSON.stringify({
-                display_text: "❌ Tolak Permintaan",
-                id: `.rejectlimit ${m.sender}`
-            })
+        if (userData.limit <= 0) {
+            const teks = `🚫 *Limit Gacha Kamu Sudah Habis!*\n\nKamu bisa minta tambahan limit dengan cara:\n> .mintalimit <tingkatan>\n\n📎 Contoh:\n.mintalimit Langka (sambil reply script bot yang mau dikasih)`
+            return Sky.sendMessage(m.chat, { text: teks }, { quoted: m })
         }
-    ]
-    const msg = { title: reqInfo, footer: "📬 Sistem Permintaan Limit", interactiveButtons }
-    Sky.sendMessage(global.owner + '@s.whatsapp.net', msg, { quoted: m })
-    Sky.sendMessage(m.chat, { text: "✅ Permintaan limit telah dikirim ke owner, tunggu konfirmasi ya!" }, { quoted: m })
+
+        await Sky.sendMessage(m.chat, { react: { text: '⏳', key: m.key } })
+
+        let folderId, jenis
+        if (command === 'gacha' || command === 'gachamt') {
+            folderId = '1D-0EV7718184dZkzZc8ag5DXSM_hePDN'
+            jenis = 'Mentahan Teks'
+        } else {
+            folderId = '1zgbo3hUW0nxMqkK0rHcuhNwlIE5Q8Z_1'
+            jenis = 'Script Bot'
+        }
+
+        const files = await getDriveFiles(folderId)
+        if (!files.length) return m.reply('⚠️ Tidak ditemukan file gacha di folder Google Drive.')
+
+        const random = files[Math.floor(Math.random() * files.length)]
+        const tingkat = /\[([^\]]+)\]/.exec(random.name)
+        const rarity = tingkat ? tingkat[1] : 'Biasa'
+        const rarityPoint = { 'Biasa': 1, 'Langka': 3, 'Super Langka': 5, 'Rare': 3 }
+        const poin = rarityPoint[rarity] || 1
+
+        userData.limit -= 1
+        userData.gacha += 1
+        userData.poin += poin
+        userData.hasil.push({ nama: random.name, tingkat: rarity })
+
+        const idx = data.findIndex(u => u.user === sender)
+        if (idx >= 0) data[idx] = userData
+        else data.push(userData)
+        saveLimitData(data)
+
+        await Sky.sendMessage(m.chat, { react: { text: '✅', key: m.key } })
+
+        await Sky.sendMessage(m.chat, {
+            document: { url: random.url },
+            fileName: random.name,
+            mimetype: random.name.endsWith('.zip') ? 'application/zip' : 'text/plain'
+        }, { quoted: m })
+
+        const info = `🎲 *GACHA ${jenis} BERHASIL!*\n\n📁 Nama: ${random.name}\n⭐ Tingkat: ${rarity}\n🎯 Poin: +${poin}\n💰 Total Poin: ${userData.poin}\n🎲 Total Gacha: ${userData.gacha}\n🔁 Sisa Limit: ${userData.limit}/5`
+        Sky.sendMessage(m.chat, { text: info }, { quoted: m })
+    } break
+
+    // =========================
+    // MINTALIMIT
+    // =========================
+    case 'mintalimit': {
+        if (!text) return m.reply('⚠️ Gunakan: .mintalimit <tingkatan>\n\nContoh:\n.mintalimit Langka (reply script bot kamu)')
+
+        if (!m.quoted || !m.quoted.message?.documentMessage)
+            return m.reply('📎 Kamu harus reply file script bot yang mau dikasih!')
+
+        const doc = m.quoted.message.documentMessage
+        const reqInfo = `📨 *Permintaan Tambah Limit*\n\n👤 Pengguna: @${m.sender.split('@')[0]}\n📈 Tingkatan: ${text}\n📎 File: ${doc.fileName}\n\nPilih tindakan di bawah ini:`
+        const interactiveButtons = [
+            {
+                name: "quick_reply",
+                buttonParamsJson: JSON.stringify({
+                    display_text: "✅ Setujui Limit",
+                    id: `.approvelimit ${m.sender}`
+                })
+            },
+            {
+                name: "quick_reply",
+                buttonParamsJson: JSON.stringify({
+                    display_text: "❌ Tolak Permintaan",
+                    id: `.rejectlimit ${m.sender}`
+                })
+            }
+        ]
+        const msg = { title: reqInfo, footer: "📬 Sistem Permintaan Limit", interactiveButtons }
+        Sky.sendMessage(global.owner + '@s.whatsapp.net', msg, { quoted: m })
+        Sky.sendMessage(m.chat, { text: "✅ Permintaan limit telah dikirim ke owner, tunggu konfirmasi ya!" }, { quoted: m })
+    } break
+
+    // =========================
+    // APPROVE LIMIT
+    // =========================
+    case 'approvelimit': {
+        if (!isOwner) return
+        const target = args[0]
+        if (!target) return m.reply('⚠️ Contoh: .approvelimit 628xxxx@s.whatsapp.net')
+
+        const data = loadLimitData()
+        const user = data.find(u => u.user === target) || { user: target, limit: 5, gacha: 0, hasil: [], poin: 0 }
+        user.limit += 5
+        const idx = data.findIndex(u => u.user === target)
+        if (idx >= 0) data[idx] = user
+        else data.push(user)
+        saveLimitData(data)
+
+        Sky.sendMessage(target, { text: `✅ Permintaan limit kamu telah disetujui oleh Owner!\n📦 Tambahan: +5 limit.` })
+        Sky.sendMessage(m.chat, { text: `✅ Limit user ${target} berhasil ditambah 5.` })
+    } break
+
+    // =========================
+    // REJECT LIMIT
+    // =========================
+    case 'rejectlimit': {
+        if (!isOwner) return
+        const target = args[0]
+        if (!target) return m.reply('⚠️ Contoh: .rejectlimit 628xxxx@s.whatsapp.net')
+
+        Sky.sendMessage(target, { text: `❌ Permintaan limit kamu *ditolak* oleh Owner.\n\nSilakan coba lagi nanti atau kirim ulang permintaan dengan alasan yang lebih jelas.` })
+        Sky.sendMessage(m.chat, { text: `❌ Permintaan limit dari ${target} telah ditolak.` })
+    } break
+
+    // =========================
+    // ADD LIMIT
+    // =========================
+    case 'addlimit': {
+        if (!isOwner) return
+        const nomor = args[0]
+        const jumlah = parseInt(args[1])
+        if (!nomor || isNaN(jumlah)) return m.reply('⚙️ Gunakan: .addlimit <nomor> <jumlah>\n\nContoh:\n.addlimit +62882019531122 10')
+
+        await Sky.sendMessage(m.chat, { react: { text: '⏳', key: m.key } })
+
+        let target = nomor.replace(/[^0-9]/g, '')
+        if (target.startsWith('0')) target = '62' + target.slice(1)
+        if (!target.endsWith('@s.whatsapp.net')) target = target + '@s.whatsapp.net'
+
+        const data = loadLimitData()
+        const user = data.find(u => u.user === target) || { user: target, limit: 5, gacha: 0, hasil: [], poin: 0 }
+        user.limit += jumlah
+        const idx = data.findIndex(u => u.user === target)
+        if (idx >= 0) data[idx] = user
+        else data.push(user)
+        saveLimitData(data)
+
+        await Sky.sendMessage(target, { text: `🎁 Kamu mendapatkan tambahan *${jumlah} limit* dari Owner!` })
+        await Sky.sendMessage(m.chat, { react: { text: '✅', key: m.key } })
+        Sky.sendMessage(m.chat, { text: `✅ Berhasil menambah *${jumlah} limit* untuk ${target}` })
+    } break
+
+    // =========================
+    // TOP GACHA
+    // =========================
+    case 'topgacha': {
+        const data = loadLimitData()
+        if (!data.length) return m.reply('⚠️ Belum ada data gacha.')
+
+        const rank = data.sort((a,b) => b.poin - a.poin).slice(0,10)
+        let teks = '🏆 *TOP GACHA LEADERBOARD*\n\n'
+        rank.forEach((x,i) => {
+            teks += `${i+1}. @${x.user.split('@')[0]}\n🎯 Poin: ${x.poin}\n🎲 Gacha: ${x.gacha}\n\n`
+        })
+        Sky.sendMessage(m.chat, { text: teks, mentions: rank.map(x => x.user) }, { quoted: m })
+    } break
+
+    // =========================
+    // MY GACHA
+    // =========================
+    case 'mygacha': {
+        const data = loadLimitData()
+        const user = data.find(u => u.user === m.sender)
+        if (!user) return m.reply('Kamu belum pernah melakukan gacha.')
+
+        let hasilText = user.hasil.map((h,i) => `(${i+1}) ${h.nama} - ${h.tingkat}`).join('\n')
+        if (!hasilText) hasilText = '_Belum ada hasil gacha_'
+
+        const teks = `👤 *Profil Gacha Kamu*\n\n🎯 Total Poin: ${user.poin}\n🎲 Total Gacha: ${user.gacha}\n🔁 Sisa Limit: ${user.limit}/5\n\n📦 *Riwayat Gacha:*\n${hasilText}`
+        Sky.sendMessage(m.chat, { text: teks }, { quoted: m })
+    } break
 }
-break
-
-// =========================
-// CASE APPROVE LIMIT
-// =========================
-case 'approvelimit': {
-    if (!isOwner) return
-    const target = args[0]
-    if (!target) return m.reply('⚠️ Contoh: .approvelimit 628xxxx@s.whatsapp.net')
-
-    const data = loadLimitData()
-    const user = data.find(u => u.user === target) || { user: target, limit: 5, gacha: 0, hasil: [], poin: 0 }
-    user.limit += 5
-    const idx = data.findIndex(u => u.user === target)
-    if (idx >= 0) data[idx] = user
-    else data.push(user)
-    saveLimitData(data)
-
-    Sky.sendMessage(target, { text: `✅ Permintaan limit kamu telah disetujui oleh Owner!\n📦 Tambahan: +5 limit.` })
-    Sky.sendMessage(m.chat, { text: `✅ Limit user ${target} berhasil ditambah 5.` })
-}
-break
-
-// =========================
-// CASE REJECT LIMIT
-// =========================
-case 'rejectlimit': {
-    if (!isOwner) return
-    const target = args[0]
-    if (!target) return m.reply('⚠️ Contoh: .rejectlimit 628xxxx@s.whatsapp.net')
-
-    Sky.sendMessage(target, { text: `❌ Permintaan limit kamu *ditolak* oleh Owner.\n\nSilakan coba lagi nanti atau kirim ulang permintaan dengan alasan yang lebih jelas.` })
-    Sky.sendMessage(m.chat, { text: `❌ Permintaan limit dari ${target} telah ditolak.` })
-}
-break
-
-// =========================
-// CASE ADD LIMIT (no tag, interaktif, auto backup)
-// =========================
-case 'addlimit': {
-    if (!isOwner) return
-    const nomor = args[0]
-    const jumlah = parseInt(args[1])
-    if (!nomor || isNaN(jumlah)) return m.reply('⚙️ Gunakan: .addlimit <nomor> <jumlah>\n\nContoh:\n.addlimit +62882019531122 10')
-
-    await Sky.sendMessage(m.chat, { react: { text: '⏳', key: m.key } })
-
-    let target = nomor.replace(/[^0-9]/g, '')
-    if (target.startsWith('0')) target = '62' + target.slice(1)
-    if (!target.endsWith('@s.whatsapp.net')) target = target + '@s.whatsapp.net'
-
-    const data = loadLimitData()
-    const user = data.find(u => u.user === target) || { user: target, limit: 5, gacha: 0, hasil: [], poin: 0 }
-    user.limit += jumlah
-    const idx = data.findIndex(u => u.user === target)
-    if (idx >= 0) data[idx] = user
-    else data.push(user)
-    saveLimitData(data)
-
-    await Sky.sendMessage(target, { text: `🎁 Kamu mendapatkan tambahan *${jumlah} limit* dari Owner!` })
-    await Sky.sendMessage(m.chat, { react: { text: '✅', key: m.key } })
-    Sky.sendMessage(m.chat, { text: `✅ Berhasil menambah *${jumlah} limit* untuk ${target}` })
-}
-break
-
-// =========================
-// CASE TOP GACHA
-// =========================
-case 'topgacha': {
-    const data = loadLimitData()
-    if (!data.length) return m.reply('⚠️ Belum ada data gacha.')
-
-    const rank = data.sort((a, b) => b.poin - a.poin).slice(0, 10)
-    let teks = '🏆 *TOP GACHA LEADERBOARD*\n\n'
-    rank.forEach((x, i) => {
-        teks += `${i + 1}. @${x.user.split('@')[0]}\n🎯 Poin: ${x.poin}\n🎲 Gacha: ${x.gacha}\n\n`
-    })
-    Sky.sendMessage(m.chat, { text: teks, mentions: rank.map(x => x.user) }, { quoted: m })
-}
-break
-
-// =========================
-// CASE PROFIL GACHA
-// =========================
-case 'mygacha': {
-    const data = loadLimitData()
-    const user = data.find(u => u.user === m.sender)
-    if (!user) return m.reply('Kamu belum pernah melakukan gacha.')
-
-    let hasilText = user.hasil.map((h, i) => `(${i + 1}) ${h.nama} - ${h.tingkat}`).join('\n')
-    if (!hasilText) hasilText = '_Belum ada hasil gacha_'
-
-    const teks = `👤 *Profil Gacha Kamu*\n\n🎯 Total Poin: ${user.poin}\n🎲 Total Gacha: ${user.gacha}\n🔁 Sisa Limit: ${user.limit}/5\n\n📦 *Riwayat Gacha:*\n${hasilText}`
-    Sky.sendMessage(m.chat, { text: teks }, { quoted: m })
-}
-break
 //=======================[ Akhir Case ]===============================
 
 default:
