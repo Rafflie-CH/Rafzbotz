@@ -117,6 +117,7 @@
     "yargs": "^17.6.2",
     "youtube-yts": "latest",
     "yt-search": "latest",
+    "dotenv": "^16.0.3",
     "yts": "latest"
   }
 }
