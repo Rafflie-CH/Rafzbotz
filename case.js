@@ -968,10 +968,6 @@ await writeUserLastInteraction(userLastInteractions);
 // 🎲 FITUR GACHA WHATSAPP
 // =========================
 
-const fs = require('fs')
-const path = require('path')
-const fetch = require('node-fetch')
-
 const limitFile = path.join(__dirname, '/library/database/limit_spin.json')
 if (!fs.existsSync(limitFile)) fs.writeFileSync(limitFile, '[]')
 
