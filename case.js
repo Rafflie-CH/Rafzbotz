@@ -1516,7 +1516,7 @@ break;
 case "brat": {
 if (!text) return m.reply(example('teksnya'))
 await Sky.sendMessage(m.chat, {react: {text: '🕒', key: m.key}})
-let res = await getBuffer(`https://api.siputzx.my.id/api/m/brat?text=${encodeURIComponent(text)}`)
+let res = await getBuffer(`https://brat.siputzx.my.id/image?text=${encodeURIComponent(text)}`)
 await Sky.sendAsSticker(m.chat, res, m, {packname: global.packname})
 }
 await Sky.sendMessage(m.chat, {react: {text: '✅', key: m.key}})
