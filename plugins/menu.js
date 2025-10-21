@@ -53,6 +53,15 @@ Hai @${m.sender.split("@")[0]}!
  │ ⳺ 🅓 .cswm <kirim/reply media> packname|author
  ╰─────
  
+╭─ *🆕『 Gacha Menu 』*
+│ ⳺ .gachamt
+│ ⳺ .gachasc
+│ ⳺ .mintalimit
+│ ⳺ 🅞 .addlimit
+│ ⳺ .topgacha
+│ ⳺ .mygacha
+╰────
+
  ╭─ *『 Stalker Menu 』*
  │⳺ .mlstalk <id ml>
  │⳺ .ffstalk <id ff>
@@ -73,6 +82,7 @@ Hai @${m.sender.split("@")[0]}!
  │ ⳺ .ektp <reply foto> <provinsi>/<kota>/<nik>/<nama>/<tempatTanggalLahir>/<jenisKelamin>/<golonganDarah>/<alamat>/<rtRw>/<kelDesa>/<kecematan>/<agama>/<status>/<pekerjaan>/<kewarganegaraan>/<masaBerlaku>/<tanggalDibuat>
  │ ⳺ .faketweet <reply foto> .faketweet teksTweet/Nama/Username/Waktu/Tanggal/Retweet/Quote/Like/Mode
  │ ⳺ .iqc <teks>
+ │ ⳺ .ciqc <text>|<waktu>|<provider>|<baterai>|<bar jaringan>
  │ ⳺ .faketiktok <reply foto> <Nama>|<Username>|<Followers>|<Following>|<Likes>|<Bio>|Verified(<true>/<false>)|isFollow(<true>/<false>)|<dark>/<light>
  │ ⳺ .fakestory <nama>|<teks>
  │ ⳺ .pakustad <teks>
@@ -86,6 +96,7 @@ Hai @${m.sender.split("@")[0]}!
 │ ⳺ .telusuriimg <kirim foto/reply foto> <prompt (opsional)>
 │ ⳺ .proai <teks>
 │ ⳺ .deepseek <teks>
+│ ⳺ .wahyuai <teks> <kirim/reply foto (opsional)>
 ╰──────
 
  ╭─ *『 Search Menu 』*
