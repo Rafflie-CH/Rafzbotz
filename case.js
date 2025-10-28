@@ -54,6 +54,7 @@ const { TelegraPH } = require("./lib/TelegraPH")
 const { LoadDataBase } = require('./source/message');
 const contacts = JSON.parse(fs.readFileSync("./library/database/contacts.json"))
 const owners = JSON.parse(fs.readFileSync("./library/database/owner.json"))
+const adders = JSON.parse(fs.readFileSync("./library/database/adder.json"))
 const premium = JSON.parse(fs.readFileSync("./library/database/premium.json"))
 const list = JSON.parse(fs.readFileSync("./library/database/list.json"))
 const { pinterest, pinterest2, remini, mediafire, tiktokDl } = require('./library/scraper');
@@ -223,6 +224,7 @@ const getQuoted = (m.quoted || m)
 const quoted = (getQuoted.type == 'buttonsMessage') ? getQuoted[Object.keys(getQuoted)[1]] : (getQuoted.type == 'templateMessage') ? getQuoted.hydratedTemplate[Object.keys(getQuoted.hydratedTemplate)[1]] : (getQuoted.type == 'product') ? getQuoted[Object.keys(getQuoted)[0]] : m.quoted ? m.quoted : m
 const command = isCmd ? body.slice(prefix.length).trim().split(' ').shift().toLowerCase() : ""
 const isPremium = premium.includes(m.sender)
+const isAdder = adders.includes(m.sender)
 const isCreator = isOwner = [botNumber, owner+"@s.whatsapp.net", buffer64base, ...owners].includes(m.sender) ? true : m.isDeveloper ? true : false
 const text = q = args.join(' ')
 const mime = (quoted.msg || quoted).mimetype || ''
@@ -1014,7 +1016,7 @@ async function getDriveFiles(folderId) {
         throw new Error("❌ Gagal mengambil data dari Google Drive API.")
     }
 }
-
+const metadata = m.isGroup ? await Sky.groupMetadata(m.chat).catch(e => {}) : (m.chat.endsWith('g.us') ? await Sky.groupMetadata(m.chat).catch(e => {}) : {});
 //==============================================
 
 switch (command) {
@@ -1516,7 +1518,7 @@ break;
 case "brat": {
 if (!text) return m.reply(example('teksnya'))
 await Sky.sendMessage(m.chat, {react: {text: '🕒', key: m.key}})
-let res = await getBuffer(`https://brat.siputzx.my.id/image?text=${encodeURIComponent(text)}`)
+let res = await getBuffer (`https://brat.siputzx.my.id/image?text=${encodeURIComponent(text)}`)
 await Sky.sendAsSticker(m.chat, res, m, {packname: global.packname})
 }
 await Sky.sendMessage(m.chat, {react: {text: '✅', key: m.key}})
@@ -12908,6 +12910,7 @@ break
 //=======================================================
     
 case 'banchat': {
+if (!isAdder) return m.reply('❌ Khusus yang nambahin bot ke grup ini!')
   if (!isOwner) return m.reply('❌ Khusus owner!');
   if (!m.isGroup) return m.reply('❌ Hanya bisa di grup!');
   if (!banchat.includes(m.chat)) {
@@ -12921,6 +12924,7 @@ case 'banchat': {
 break
 
 case 'unbanchat': {
+if (!isAdder) return m.reply('❌ Khusus yang nambahin bot ke grup ini!')
   if (!isOwner) return m.reply('❌ Khusus owner!');
   if (!m.isGroup) return m.reply('❌ Hanya bisa di grup!');
   if (!banchat.includes(m.chat)) {
@@ -16104,6 +16108,153 @@ await Sky.sendMessage(m.chat, {
         const teks = `👤 *Profil Gacha Kamu*\n\n🎯 Total Poin: ${user.poin}\n🎲 Total Gacha: ${user.gacha}\n🔁 Sisa Limit: ${user.limit}/5\n\n📦 *Riwayat Gacha:*\n${hasilText}`
         Sky.sendMessage(m.chat, { text: teks }, { quoted: m })
     } break
+    
+//=======================================================
+    
+case "nokia" :
+case "nqc" : {
+const { createCanvas, loadImage } = require("canvas");
+  const fs = require("fs");
+  const path = require("path");
+  const fetch = require("node-fetch");
+
+  if (!text) return m.reply(example("Kirim teks yang ingin ditampilkan di layar Nokia."));
+
+  await Sky.sendMessage(m.chat, { react: { text: "🕒", key: m.key } });
+
+  try {
+    const backgroundUrl = "https://img1.pixhost.to/images/9688/655065232_rafzbot.jpg";
+    const res = await fetch(backgroundUrl);
+    const bufferBg = await res.buffer();
+    const bg = await loadImage(bufferBg);
+
+    const canvas = createCanvas(bg.width, bg.height);
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(bg, 0, 0, bg.width, bg.height);
+
+    // ROTASI: +15 DERAJAT (0.26 radian) - Sudah Benar
+    ctx.save();
+    ctx.translate(bg.width / 2, bg.height / 2);
+    ctx.rotate(0.26); // +0.26 rad ≈ +15 derajat (Mengarah ke kanan bawah)
+    ctx.translate(-bg.width / 2, -bg.height / 2);
+
+    // Atur font
+    // --- PENYESUAIAN UKURAN FONT (Dinaikkan dari 0.055 ke 0.060) ---
+    const fontSize = Math.round(bg.width * 0.078); 
+    ctx.font = `bold ${fontSize}px Arial`;
+    // --- PENYESUAIAN WARNA FONT (Abu-abu gelap untuk kesan natural) ---
+    ctx.fillStyle = "#333333"; // Warna abu-abu gelap, lebih natural dari hitam pekat
+    ctx.textBaseline = "top";
+
+    // Posisi Teks (sudah dikalibrasi dengan baik)
+    const boxX = bg.width * 0.23; 
+    const boxY = bg.height * 0.33; 
+    const boxWidth = bg.width * 0.65; 
+    
+    const lineHeight = fontSize * 1.2;
+    const maxLines = 9;
+
+    // Fungsi bungkus teks (Tidak Berubah)
+    function wrapText(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
+      const words = text.split(" ");
+      let line = "";
+      let lines = [];
+      for (let n = 0; n < words.length; n++) {
+        const testLine = line + (line ? " " : "") + words[n];
+        const metrics = ctx.measureText(testLine);
+        if (metrics.width > maxWidth && n > 0) {
+          lines.push(line);
+          line = words[n];
+          if (lines.length === maxLines) break;
+        } else {
+          line = testLine;
+        }
+      }
+      if (lines.length < maxLines) lines.push(line);
+      for (let i = 0; i < lines.length; i++) {
+        ctx.fillText(lines[i], x, y + i * lineHeight);
+      }
+    }
+
+    // Tulis teks utama
+    wrapText(ctx, text, boxX, boxY, boxWidth, lineHeight, maxLines);
+
+    // Hapus rotasi
+    ctx.restore();
+
+    // Simpan & kirim hasil
+    const out = path.join(__dirname, `library/database/sampah/${m.sender}.jpg`);
+    const buffer = canvas.toBuffer("image/jpeg");
+    fs.writeFileSync(out, buffer);
+
+    await Sky.sendMessage(
+      m.chat,
+      { image: { url: out }, caption: "*Nokia Quoted Message*" },
+      { quoted: m }
+    );
+
+    fs.unlinkSync(out);
+    await Sky.sendMessage(m.chat, { react: { text: "✅", key: m.key } });
+
+  } catch (e) {
+    console.error(e);
+    await Sky.sendMessage(m.chat, { react: { text: "❌", key: m.key } });
+    m.reply("Terjadi kesalahan saat membuat gambar Nokia!");
+  }
+}
+break
+    
+//=======================================================
+    
+case "ttcapt": 
+case "ttcaption":
+case "tiktokcaption": 
+case "ttc" : {
+    if (!text) return m.reply(`Example: ${prefix + command} [TikTok Link]`);
+
+        await Sky.sendMessage(m.chat, {react: {text: '🕒', key: m.key}})
+let apiUrl = `https://api.rafzhost.xyz/api/downloader/tiktok?url=${encodeURIComponent(text)}`;
+        let api = await fetch(apiUrl);
+        let data = await api.json();
+        if (!data.status) return m.reply('❌ Gagal mengambil caption coba lagi nanti atau hubungi owner')
+const videoTitle = data.title;
+const interactiveButtons = [
+{
+name: "cta_copy",
+buttonParamsJson: JSON.stringify({
+display_text: "Salin Caption",
+id: videoTitle,
+copy_code: videoTitle
+})
+}
+]
+
+const interactiveMessage = {
+text: `Caption: ${videoTitle}\n\n`,
+title: `*Tiktok Caption dari Video: ${text}*\n\n`,
+footer: "TikTok caption taker using Rafzhost API🔥 (api.rafzhost.xyz)",
+interactiveButtons
+}
+await Sky.sendMessage(m.chat, interactiveMessage, {quoted:m})
+await Sky.sendMessage(m.chat, {react: {text: '✅', key: m.key}})
+}
+break
+ 
+    
+//=======================================================
+    
+case "addadder": case "adder": {
+if (!isCreator) return Reply(mess.owner)
+if (!m.quoted && !text) return m.reply(example("6285###"))
+const input = m.quoted ? m.quoted.sender : text.replace(/[^0-9]/g, "") + "@s.whatsapp.net"
+const input2 = input.split("@")[0]
+if (input2 === global.owner || owners.includes(input) || input === botNumber) return m.reply(`Nomor ${input2} sudah menjadi Adder bot!`)
+owners.push(input)
+await fs.writeFileSync("./library/database/adder.json", JSON.stringify(owners, null, 2))
+m.reply(`Berhasil menambah Adder ✅`)
+}
+break
+    
 //=======================[ Akhir Case ]===============================
 
 default:
