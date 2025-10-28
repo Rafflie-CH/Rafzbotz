@@ -82,7 +82,8 @@ Hai @${m.sender.split("@")[0]}!
  │ ⳺ .ektp <reply foto> <provinsi>/<kota>/<nik>/<nama>/<tempatTanggalLahir>/<jenisKelamin>/<golonganDarah>/<alamat>/<rtRw>/<kelDesa>/<kecematan>/<agama>/<status>/<pekerjaan>/<kewarganegaraan>/<masaBerlaku>/<tanggalDibuat>
  │ ⳺ .faketweet <reply foto> .faketweet teksTweet/Nama/Username/Waktu/Tanggal/Retweet/Quote/Like/Mode
  │ ⳺ .iqc <teks>
- │ ⳺ .ciqc <text>|<waktu>|<provider>|<baterai>|<bar jaringan>
+ │ ⳺ .ciqc <teks>|<waktu>|<provider>|<baterai>|<bar jaringan>
+ │ ⳺ .nqc <teks>
  │ ⳺ .faketiktok <reply foto> <Nama>|<Username>|<Followers>|<Following>|<Likes>|<Bio>|Verified(<true>/<false>)|isFollow(<true>/<false>)|<dark>/<light>
  │ ⳺ .fakestory <nama>|<teks>
  │ ⳺ .pakustad <teks>
@@ -214,6 +215,7 @@ Hai @${m.sender.split("@")[0]}!
  │ ⳺ .ambillinkgc <id gc>
  │ ⳺ .toviourl <kirim/reply media>
  │ ⳺ .ocr <kirim/reply media>
+ │ ⳺ .ttcapt <link tiktok>
  ╰──────
   
  ╭─ *『 Grup Menu 』*
@@ -346,6 +348,7 @@ Hai @${m.sender.split("@")[0]}!
  │ ⳺ .getplugins
  │ ⳺ .saveplugins
  │ ⳺ .addowner
+ │ ⳺ .adder
  │ ⳺ .listowner
  │ ⳺ .delowner
  │ ⳺ .self/public
