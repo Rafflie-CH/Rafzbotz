@@ -11447,26 +11447,113 @@ break
 
 //=======================================================
   
-case 'sendemail': {
-  if (!text.includes('|')) return m.reply(`Contoh: sendemail to|from|subject|message`);
-
-  let [to, from, subject, message] = text.split('|');
-  if (!to || !from || !subject || !message) return m.reply(`Semua kolom harus diisi!\nContoh: sendemail to|from|subject|message`);
-
+case "sendemail": {
   try {
-    let res = await fetch(`https://fastrestapis.fasturl.cloud/tool/sendmail?to=${encodeURIComponent(to)}&from=${encodeURIComponent(from)}&subject=${encodeURIComponent(subject)}&message=${encodeURIComponent(message)}`);
-    let data = await res.json();
-    console.log(data);
-    if (data?.result?.success) {
-      m.reply(`✅ Email berhasil dikirim!\n\n*To:* ${to}\n*From:* ${from}\n*Subject:* ${subject}\n*Preview:* ${data.result.messagePreview}`);
-    } else {
-      m.reply(`❌ Gagal kirim email!\nStatus: ${data.status || 'N/A'}\nPesan: ${data.message || 'Tidak ada keterangan'}\n\nDebug:\n${JSON.stringify(data, null, 2)}`);
+    if (!text) {
+      return m.reply(
+        `📧 *Cara Penggunaan:*\n` +
+        `\`${prefix + command} <email tujuan>|<nama anda>|<subjek>|<pesan>\`\n\n` +
+        `📌 *Contoh:*\n` +
+        `\`${prefix + command} rafz@gmail.com|Rafz|Pesan Penting!!|Halo bro, cek email ini ya~\``
+      );
     }
+
+    await Sky.sendMessage(m.chat, { react: { text: "🕒", key: m.key } });
+
+    const nodemailer = require("nodemailer");
+    const dotenv = require("dotenv");
+    dotenv.config();
+
+    const [email_tujuan, nama_anda, subjek, teks] = text.split("|").map(t => t.trim());
+    if (!email_tujuan || !nama_anda || !subjek || !teks) {
+      return m.reply("⚠️ *Format salah!* Gunakan tanda `|` untuk memisahkan setiap bagian!");
+    }
+
+    async function loadPairsFromEnv(prefix = "EMAIL_") {
+      const pairs = [];
+      for (let i = 1; i <= 200; i++) {
+        const val = process.env[`${prefix}${i}`];
+        if (!val) continue;
+        const [email, pass] = val.split("|").map(x => x.trim());
+        if (email && pass) pairs.push({ email, pass });
+      }
+      return pairs;
+    }
+
+    async function loadPairsFromEMAIL_PAIRS() {
+      const raw = process.env.EMAIL_PAIRS;
+      if (!raw) return [];
+      return raw
+        .split("|")
+        .map(s => s.trim())
+        .filter(Boolean)
+        .map(item => {
+          const [email, pass] = item.split(";").map(x => x.trim());
+          return { email, pass };
+        });
+    }
+
+    async function loadAllPairs() {
+      const a = await loadPairsFromEnv("email");
+      if (a.length) return a;
+      const b = await loadPairsFromEnv("EMAIL_");
+      if (b.length) return b;
+      const c = await loadPairsFromEMAIL_PAIRS();
+      if (c.length) return c;
+      return [];
+    }
+
+    const pairs = await loadAllPairs();
+    if (!pairs.length) {
+      return m.reply("🚫 *Tidak ada konfigurasi email ditemukan!* Pastikan variabel `.env` terisi dengan benar!");
+    }
+
+    const randomSender = pairs[Math.floor(Math.random() * pairs.length)];
+    const SENDER_EMAIL = randomSender.email;
+    const APP_PASSWORD = randomSender.pass;
+
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: SENDER_EMAIL,
+        pass: APP_PASSWORD
+      }
+    });
+
+    const mailOptions = {
+      from: `"${nama_anda} | Rafzbotz Mailer" <${SENDER_EMAIL}>`,
+      to: email_tujuan,
+      subject: subjek,
+      text: `${teks}\n\n\n‼️ Jangan balas email ini, karena pesan ini dikirim dari bot.`
+    };
+
+    transporter.sendMail(mailOptions, async (error, info) => {
+      if (error) {
+        console.error("Error:", error);
+        await Sky.sendMessage(m.chat, { react: { text: "❌", key: m.key } });
+        return m.reply(`❌ *Gagal mengirim email!*\n\n> _${error.message}_`);
+      } else {
+        await Sky.sendMessage(m.chat, { react: { text: "✅", key: m.key } });
+        return m.reply(
+          `✅ *Email Berhasil Dikirim!*\n\n` +
+          `📬 *Penerima:* \`${email_tujuan}\`\n` +
+          `👤 *Dari:* \`${nama_anda}\`\n` +
+          `📝 *Subjek:* \`${subjek}\`\n` +
+          `💬 *Pesan:* \`\`\`${teks}\`\`\``
+        );
+      }
+    });
   } catch (err) {
-    m.reply(`❌ Terjadi error saat mengirim email:\n${err.message}`);
+    console.error(err);
+    await Sky.sendMessage(m.chat, { react: { text: "⚠️", key: m.key } });
+    return m.reply(
+      `⚠️ *Terjadi Kesalahan Internal!*\n\n` +
+      `Silakan coba lagi nanti atau hubungi admin.\n\n` +
+      `> _${err.message}_`
+    );
   }
 }
-break 
+break;
     
 //=======================================================
 case 'unkenon' : {
@@ -12910,8 +12997,7 @@ break
 //=======================================================
     
 case 'banchat': {
-if (!isAdder) return m.reply('❌ Khusus yang nambahin bot ke grup ini!')
-  if (!isOwner) return m.reply('❌ Khusus owner!');
+  if (!isOwner && !isAdder) return m.reply('❌ anda tidak memiliki izin!');
   if (!m.isGroup) return m.reply('❌ Hanya bisa di grup!');
   if (!banchat.includes(m.chat)) {
     banchat.push(m.chat);
@@ -12924,7 +13010,7 @@ if (!isAdder) return m.reply('❌ Khusus yang nambahin bot ke grup ini!')
 break
 
 case 'unbanchat': {
-if (!isAdder) return m.reply('❌ Khusus yang nambahin bot ke grup ini!')
+if (!isOwner && !isAdder) return m.reply('❌ anda tidak memiliki izin!')
   if (!isOwner) return m.reply('❌ Khusus owner!');
   if (!m.isGroup) return m.reply('❌ Hanya bisa di grup!');
   if (!banchat.includes(m.chat)) {
@@ -15385,72 +15471,268 @@ break; // Tambahkan titik koma di akhir blok case
 //=======================================================
 case 'wahyu':
 case 'wahyuai': {
-    const text = args.length > 0 ? args.join(" ") : "Perkenalkan diri anda"  // default kalau kosong
+const fs = require("fs")
+const path = require("path")
+const fetch = require("node-fetch")
+const unzipper = require("unzipper")
+const { GoogleGenerativeAI } = require("@google/generative-ai")
 
-    await Sky.sendMessage(m.chat, { react: { text: '🕒', key: m.key } })
+const TEMP = "./library/database/sampah"
+if (!fs.existsSync(TEMP)) fs.mkdirSync(TEMP, { recursive: true })
 
-    // fungsi untuk rapihin format biar sesuai WA
-    function cleanResponse(txt) {
-        let blocks = []
-        // Simpan code block dulu
-        txt = txt.replace(/```([\s\S]*?)```/g, (m, code) => {
-            let token = `__CODEBLOCK${blocks.length}__`
-            blocks.push(code)
-            return token
-        })
+const API_KEY = "AIzaSyBg_Q_QhTDsZ2ddbVyffVSMeF8mhk7ivpI"
+const ai = new GoogleGenerativeAI(API_KEY)
 
-        txt = txt
-            // Bold: **teks** => *teks*
-            .replace(/\*\*(.*?)\*\*/g, '*$1*')
-            // Fix *`teks`* => `teks`
-            .replace(/\*`([^`]+)`\*/g, '`$1`')
-            // Hapus * sisa yang berdiri sendiri
-            .replace(/(^|[^*])\*([^*]|$)/g, '$1$2')
-            // Rapihin spasi
-            .trim()
+const OWNER = `${global.owner}`
+const SD_KEY = process.env.SD_KEY || ""
 
-        // Balikin code block
-        txt = txt.replace(/__CODEBLOCK(\d+)__/g, (m, i) => {
-            return "```" + blocks[i] + "```"
-        })
+const sender = m.sender.replace(/[^0-9]/g, "")
+const isGroup = m.isGroup
+const groupId = isGroup ? m.chat : null
+const userName = m.pushName || "User"
+const userText = args.length ? args.join(" ") : "Perkenalkan diri anda"
 
-        return txt
+await Sky.sendMessage(m.chat, { react: { text: "🕒", key: m.key } })
+
+async function getWorkingModel(ai) {
+    const candidates = [
+        "gemini-3-pro-preview",
+        "gemini-2.5-pro",
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-lite",
+        "gemini-2.0-flash",
+        "gemini-2.0-flash-lite"
+    ]
+    for (let m of candidates) {
+        try {
+            const testModel = ai.getGenerativeModel({ model: m })
+            await testModel.generateContent("test")
+            return m
+        } catch {}
     }
-
-    try {
-        let responAi;
-
-        if (/image/.test(mime)) {
-            let media = await Sky.downloadAndSaveMediaMessage(qmsg)
-            const { ImageUploadService } = require('node-upload-images')
-            const service = new ImageUploadService('pixhost.to')
-            let { directLink } = await service.uploadFromBinary(fs.readFileSync(media), 'Rafzbot.png')
-            let fotoUrl = directLink.toString()
-            await fs.unlinkSync(media)
-
-            let url = `https://api.siputzx.my.id/api/ai/gemini-lite?prompt=Prompt%20sistem%20anda%20adalah%3A%20Nama%20anda%20adalah%20Wahyu%2C%20anda%20orangnya%20asik%2C%20gaul%20suka%20bercanda%2C%20kamu%20adalah%20AI%20yang%20suka%20membantu%20dan%20bisa%20baca%20foto.%20cara%20menggunakan%20ai%20anda%20adalah%20dengan%20mengetik%20.wahyu%20atau%20.wahyuai%20contoh%20.wahyu%20hai%5CnPertanyaan%20nya%3A%20${encodeURIComponent(text)}&imgUrl=${encodeURIComponent(fotoUrl)}`
-            let res = await fetch(url)
-            let data = await res.json()
-            responAi = data.data.parts[0].text
-        } else {
-            let url = `https://api.siputzx.my.id/api/ai/gemini?text=Prompt%20sistem%20anda%20adalah%3A%20Nama%20anda%20adalah%20Wahyu%2C%20anda%20orangnya%20asik%2C%20gaul%20suka%20bercanda%2C%20kamu%20adalah%20AI%20yang%20suka%20membantu%20dan%20bisa%20baca%20foto.%20cara%20menggunakan%20ai%20anda%20adalah%20dengan%20mengetik%20.wahyu%20atau%20.wahyuai%20contoh%20.wahyu%20hai%5CnPertanyaan%20nya%3A%20${encodeURIComponent(text)}&cookie=AIzaSyCbEX8el6R7dXS-apyXEBnrTSn36C9wzbs`
-            let res = await fetch(url)
-            let data = await res.json()
-            responAi = data.data.response
-        }
-
-        // rapihin sebelum dikirim
-        responAi = cleanResponse(responAi)
-        m.reply(responAi)
-
-    } catch (e) {
-        console.log(e)
-        m.reply("❌ Gagal memproses permintaan.")
-    }
-
-    await Sky.sendMessage(m.chat, { react: { text: '✅', key: m.key } })
+    throw new Error("Tidak ada model yang tersedia.")
 }
+
+const ROOT = "./gemini_sessions"
+const DIR = isGroup ? path.join(ROOT, "group", groupId) : path.join(ROOT, "private", sender)
+if (!fs.existsSync(DIR)) fs.mkdirSync(DIR, { recursive: true })
+
+const sessionFile = path.join(DIR, "session.json")
+const timeFile = path.join(DIR, "timestamp.json")
+
+if (!fs.existsSync(sessionFile)) fs.writeFileSync(sessionFile, JSON.stringify([]))
+if (!fs.existsSync(timeFile)) fs.writeFileSync(timeFile, JSON.stringify(Date.now()))
+
+function loadSession() {
+    return JSON.parse(fs.readFileSync(sessionFile))
+}
+function saveSession(d) {
+    fs.writeFileSync(sessionFile, JSON.stringify(d, null, 2))
+    fs.writeFileSync(timeFile, JSON.stringify(Date.now()))
+}
+function deleteSession(dir) {
+    let a = path.join(dir, "session.json")
+    let b = path.join(dir, "timestamp.json")
+    if (fs.existsSync(a)) fs.unlinkSync(a)
+    if (fs.existsSync(b)) fs.unlinkSync(b)
+}
+
+let lastTime = Number(JSON.parse(fs.readFileSync(timeFile)))
+let expired = Date.now() - lastTime >= 7 * 24 * 60 * 60 * 1000
+if (expired) {
+    deleteSession(DIR)
+    fs.writeFileSync(sessionFile, JSON.stringify([]))
+    fs.writeFileSync(timeFile, JSON.stringify(Date.now()))
+}
+
+let aiOverride = null
+if (userText.toLowerCase() === "hapus session") {
+    deleteSession(DIR)
+    aiOverride = `Session user ${sender} (${userName}) sudah dihapus.`
+}
+
+if (userText.startsWith("hapus session ") && m.sender === OWNER + "@s.whatsapp.net") {
+    const target = userText.split(" ")[2]
+    if (target) {
+        deleteSession(path.join(ROOT, "private", target))
+        deleteSession(path.join(ROOT, "group", target))
+        aiOverride = `Owner menghapus session user ${target}.`
+    }
+}
+
+let history = loadSession()
+
+async function realtimeInfo() {
+    const t = new Date()
+    return {
+        wib: t.toLocaleString("id-ID", { timeZone: "Asia/Jakarta" }),
+        wita: t.toLocaleString("id-ID", { timeZone: "Asia/Makassar" }),
+        wit: t.toLocaleString("id-ID", { timeZone: "Asia/Jayapura" })
+    }
+}
+
+async function getNews(topic) {
+    try {
+        let r = await fetch(`https://newsapi.org/v2/top-headlines?country=id&q=${encodeURIComponent(topic)}&apiKey=8f2dd5b5c9bc4df8be6ca879c98c7f31`)
+        let d = await r.json()
+        if (!d.articles) return { list: "", disaster: null }
+        let arts = d.articles.slice(0, 5)
+        let list = arts.map(a => `• ${a.title}`).join("\n")
+        let disaster = null
+        let keys = ["gempa","banjir","longsor","tsunami","kebakaran","gunung"]
+        for (let a of arts) {
+            let t = a.title.toLowerCase()
+            for (let k of keys) if (t.includes(k)) disaster = "Indonesia"
+        }
+        return { list, disaster }
+    } catch { return { list: "", disaster: null } }
+}
+
+const askRealtime = /waktu|jam|hari|tanggal|wib|wita|wit/i.test(userText)
+const askNews = /berita|politik|gempa|tsunami|banjir|bencana/i.test(userText)
+
+const realtime = askRealtime ? await realtimeInfo() : null
+const news = askNews ? await getNews(userText) : { list: "", disaster: null }
+const footer = news.disaster ? `\n\nPray for Indonesia 🙏` : ""
+
+async function readAnyFile(buffer, mime) {
+    if (!mime) return { type: "unknown", data: buffer.toString("base64") }
+    if (mime.startsWith("image/")) return { type: "image", mime, data: buffer.toString("base64") }
+    if (mime.startsWith("audio/")) return { type: "audio", mime, data: buffer.toString("base64") }
+    if (mime.startsWith("video/")) return { type: "video", mime }
+    if (mime.includes("zip")) {
+        let zipPath = path.join(TEMP, `tmp_${Date.now()}.zip`)
+        fs.writeFileSync(zipPath, buffer)
+        let files = []
+        await fs.createReadStream(zipPath).pipe(unzipper.Parse()).on("entry", e => files.push(e.path))
+        fs.unlinkSync(zipPath)
+        return { type: "zip", files }
+    }
+    return { type: "doc", mime, text: buffer.toString() }
+}
+
+async function SD_generate(prompt) {
+    if (!SD_KEY) return null
+    try {
+        let r = await fetch("https://api.fal.ai/text-to-image", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Key ${SD_KEY}` },
+            body: JSON.stringify({ prompt })
+        })
+        let d = await r.json()
+        return d.image ? d.image.url : null
+    } catch { return null }
+}
+
+async function SD_edit(base64img, prompt) {
+    if (!SD_KEY) return null
+    try {
+        let r = await fetch("https://api.fal.ai/image-to-image", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Key ${SD_KEY}` },
+            body: JSON.stringify({ prompt, image: base64img })
+        })
+        let d = await r.json()
+        return d.image ? d.image.url : null
+    } catch { return null }
+}
+
+async function lexicaGenerate(prompt) {
+    try {
+        let r = await fetch(`https://lexica.art/api/v1/search?q=${encodeURIComponent(prompt)}`)
+        let d = await r.json()
+        return d.images?.[0]?.src || null
+    } catch { return null }
+}
+
+const qmsg = m.quoted ? m.quoted : m
+const mime = (qmsg.msg || qmsg)?.mimetype || ""
+
+let hasMedia = /image|audio|video|pdf|msword|officedocument|zip|text|json/.test(mime)
+let mediaBase64 = ""
+let mediaMime = mime
+
+if (hasMedia) {
+    let p = await Sky.downloadAndSaveMediaMessage(qmsg)
+    mediaBase64 = fs.readFileSync(p).toString("base64")
+    fs.unlinkSync(p)
+}
+
+const askImageGen = /buat gambar|generate gambar|bikin gambar|gambar dong|gambar ini/i.test(userText.toLowerCase())
+const askEditImg = /edit/i.test(userText.toLowerCase()) && mime.startsWith("image")
+
+let imageResult = null
+if (askImageGen) {
+    let sd = await SD_generate(userText)
+    imageResult = sd || await lexicaGenerate(userText)
+}
+if (askEditImg) {
+    let p = await Sky.downloadAndSaveMediaMessage(qmsg)
+    let b64 = fs.readFileSync(p).toString("base64")
+    let sd = await SD_edit(b64, userText)
+    imageResult = sd || await lexicaGenerate(userText)
+    fs.unlinkSync(p)
+}
+
+const selectedModel = await getWorkingModel(ai)
+const model = ai.getGenerativeModel({ model: selectedModel })
+
+const chat = model.startChat({
+    history: history.map(h => ({ text: h.text }))
+})
+
+let systemPrompt =
+`Nama anda Wahyu, AI gaul santai, pintar, dan akurat.
+Jika ditanya "siapa kamu", jawab bahwa kamu adalah Wahyu AI, Gemini yang disempurnakan oleh Rafz.
+
+Kemampuan utama:
+- Baca gambar, audio, video, dokumen, teks
+- Edit & generate gambar
+- Jelaskan isi media
+- Analisis data, coding, hitungan
+- Ringkasan berita & waktu real-time
+
+Cara penggunaan:
+.wahyu halo
+.wahyuai apa itu AI
+Reply foto → .wahyu jelasin
+Reply audio → .wahyu dengerin
+Reply dokumen → .wahyu bacain
+.wahyu buat gambar naga terbang
+.wahyu edit jadi 4K
+
+${aiOverride ? aiOverride : ""}
+${askRealtime ? `Waktu Indonesia: WIB ${realtime.wib}` : ""}
+${askNews ? `Berita terbaru:\n${news.list}` : ""}`
+
+let parts = [
+    { text: systemPrompt + "\n\nPertanyaan: " + userText }
+]
+
+if (hasMedia) {
+    parts.push({
+        inlineData: {
+            mimeType: mediaMime,
+            data: mediaBase64
+        }
+    })
+}
+
+let aiRes = await chat.sendMessage(parts)
+let reply = aiRes.response.text() + footer
+
+if (imageResult) {
+    await Sky.sendMessage(m.chat, { image: { url: imageResult }, caption: reply })
+} else {
+    await m.reply(reply)
+}
+
+history.push({ text: userText }, { text: reply })
+saveSession(history)
+
+await Sky.sendMessage(m.chat, { react: { text: "✅", key: m.key } })
 break
+}
  //=======================================================
 
 case 'ciqc': {
@@ -16254,6 +16536,182 @@ await fs.writeFileSync("./library/database/adder.json", JSON.stringify(owners, n
 m.reply(`Berhasil menambah Adder ✅`)
 }
 break
+
+    
+//=======================================================
+    
+/**
+* Create By Fjr (Rebot)
+* Fitur WEBP TO MP4 (Sticker to Mp4) - ESM (Type Case Fitur)
+* Using ImageMagick and FFmpeg
+* Pastikan server atau bot kalian sudah menginstall ImageMagick dan FFmpeg
+* Jika versi ImageMagick kalian di atas versi 7, silahkan edit bagian execPromise(`convert "${inputPath}" "${tempPattern}"`); menjadi execPromise(`magick "${inputPath}" "${tempPattern}"`); 
+* convert (versi 6) => magick (vesi 7)
+* minus penggunaan berat akibat Extracted frames, bisa memakan sekitar 50% - 100% CPU tergantung banyak frames webp
+*/
+
+case 'tovideotest':
+case 'tomp4test': {
+const ffmpeg = require("fluent-ffmpeg");
+const { exec } = require("child_process");
+const { promisify } = require("util");
+const fs = require("fs");
+const path = require("path");
+const execPromise = promisify(exec);
+
+async function webpToMp4ImageMagick(inputPath, outputPath, options = {}) {
+  try {
+    const {
+      duration = 3,
+      fps = 15,
+      quality = "medium"
+    } = options;
+
+    const tempDir = path.join(process.cwd(), './library/database/sampah');
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir);
+    }
+
+    const tempPattern = path.join(tempDir, `frame_%03d.png`);
+    const tempVideo = path.join(tempDir, `temp_${Date.now()}.mp4`);
+
+    // Extract frames using ImageMagick
+    await execPromise(`convert "${inputPath}" "${tempPattern}"`);
+
+    // Check if frames were extracted
+    const frames = fs.readdirSync(tempDir).filter(file => file.startsWith('frame_'));
+    
+    if (frames.length === 0) {
+      throw new Error('No frames extracted from webp');
+    }
+
+    console.log(`Extracted ${frames.length} frames`);
+
+    // Convert frames to mp4 using FFmpeg
+    const framerate = frames.length > 1 ? fps : `1/${duration}`;
+    
+    await execPromise(`ffmpeg -y -framerate ${framerate} -i "${tempPattern}" -c:v libx264 -pix_fmt yuv420p -vf "scale=512:512" "${outputPath}"`);
+
+    // Cleanup temp files
+    frames.forEach(frame => {
+      fs.unlinkSync(path.join(tempDir, frame));
+    });
+
+    return outputPath;
+
+  } catch (error) {
+    throw new Error(`ImageMagick conversion failed: ${error.message}`);
+  }
+}
+
+  if (!/image/.test(mime)) return m.reply(' ❔ Reply sticker yang mau diconvert ke video!');
+  
+  m.reply('🕒 Converting sticker to video... Please wait...');
+  
+  try {
+    // Download sticker
+    console.log('Downloading sticker...');
+    const stickerBuffer = await Sky.downloadAndSaveMediaMessage(qmsg);
+    
+    if (!stickerBuffer) {
+      throw new Error('Failed to download sticker');
+    }
+    
+    // Generate temp file paths
+    const inputFile = `./library/database/sampah/input_${getRandom('.webp')}`;
+    const outputFile = `./library/database/sampah/output_${getRandom('.mp4')}`;
+    
+    // Ensure temp directory exists
+    if (!fs.existsSync('./library/database/sampah')) {
+      fs.mkdirSync('./library/database/sampah');
+    }
+    
+    // Write sticker buffer to file
+    fs.writeFileSync(inputFile, stickerBuffer);
+    
+    // Conversion options
+    const conversionOptions = {
+      duration: 3,        // 3 seconds for static stickers
+      fps: 15,           // 15 FPS
+      quality: 'medium', // Balance between quality and size
+      scale: '512:512'   // WhatsApp recommended size
+    };
+    
+    console.log('Starting conversion...');
+    
+    // Convert webp to mp4
+    await webpToMp4ImageMagick(inputFile, outputFile, conversionOptions);
+    
+    // Check if output file exists and has content
+    if (!fs.existsSync(outputFile) || fs.statSync(outputFile).size === 0) {
+      throw new Error('Conversion failed - output file is empty or missing');
+    }
+    
+    const fileSize = fs.statSync(outputFile).size;
+    const fileSizeMB = (fileSize / (1024 * 1024)).toFixed(2);
+    
+    console.log(`Conversion completed. File size: ${fileSizeMB}MB`);
+    
+    // Check file size limit (WhatsApp has ~16MB limit for videos)
+    if (fileSize > 15 * 1024 * 1024) { // 15MB limit
+      throw new Error(`File too large (${fileSizeMB}MB). Try with a smaller sticker.`);
+    }
+    
+    // Send the video
+    await Sky.sendMessage(m.chat, {
+      video: fs.readFileSync(outputFile),
+      caption: `✅*Sticker to Video*\n\n🗂️**File Size:** ${fileSizeMB}MB\🕒 **Duration:** ${conversionOptions.duration}s\n🎬**FPS:** ${conversionOptions.fps}\n📐**Resolution:** 512x512\n\n*Converted by rafzboz`
+    }, { quoted: m });
+    
+    // Cleanup temp files
+    try {
+      if (fs.existsSync(inputFile)) fs.unlinkSync(inputFile);
+      if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile);
+    } catch (cleanupError) {
+      console.log('Cleanup error:', cleanupError.message);
+    }
+    
+  } catch (error) {
+    console.log('tovideo Error:', error.message);
+    
+    let errorMsg = '❌ Gagal convert sticker ke video.\n\n';
+    
+    if (error.message.includes('FFmpeg')) {
+      errorMsg += '🔧 **Masalah:** FFmpeg error\n💡 **Solusi:** Coba dengan sticker yang lain';
+    } else if (error.message.includes('too large')) {
+      errorMsg += '📊 **Masalah:** File terlalu besar\n💡 **Solusi:** Gunakan sticker yang lebih kecil';
+    } else if (error.message.includes('download')) {
+      errorMsg += '📥 **Masalah:** Gagal download sticker\n💡 **Solusi:** Pastikan reply sticker yang valid';
+    } else {
+      errorMsg += '💡 **Solusi:** Coba lagi atau gunakan sticker lain';
+    }
+    
+    m.reply(errorMsg);
+    
+  } finally {
+    
+    // Cleanup any remaining temp files
+    try {
+      const tempDir = './library/database/sampah';
+      if (fs.existsSync(tempDir)) {
+        const tempFiles = fs.readdirSync(tempDir)
+        .filter(file => file.includes(m.sender.split('@')[0]) || 
+                          (Date.now() - fs.statSync(path.join(tempDir, file)).mtime.getTime() > 300000)); // 5 minutes old
+        
+        tempFiles.forEach(file => {
+          try {
+            fs.unlinkSync(path.join(tempDir, file));
+          } catch (e) {
+            // Ignore cleanup errors
+          }
+        });
+      }
+    } catch (e) {
+      // Ignore cleanup errors
+    }
+  }
+}
+break;
     
 //=======================[ Akhir Case ]===============================
 
