@@ -6,7 +6,7 @@
   "type": "commonjs",
   "scripts": {
     "postinstall": "node install-replit.js",
-    "start": "node main.js"
+    "start": "node main.js",
     "control": "node control.js"
   },
   "keywords": [
