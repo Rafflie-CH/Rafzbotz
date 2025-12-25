@@ -17,7 +17,10 @@ function startServer() {
 }
 
 function startBot() {
-  if (botProcess) return
+  if (botProcess || status === "RESTARTING") {
+    console.log("⏳ Bot masih proses, skip start")
+    return
+  }
 
   status = "ON"
 
@@ -30,9 +33,8 @@ function startBot() {
     botProcess = null
     status = "OFF"
   })
-setTimeout(() => {
-    startServer()
-  }, 3000)
+
+  setTimeout(startServer, 3000)
 }
 
 function stopBot() {
@@ -55,9 +57,15 @@ app.get("/stop", (req, res) => {
 })
 
 app.get("/restart", (req, res) => {
+  if (status === "RESTARTING") return res.json({ status })
+
   status = "RESTARTING"
   stopBot()
-  setTimeout(startBot, 2000)
+
+  setTimeout(() => {
+    startBot()
+  }, 5000) // ⬅️ dari 2 detik jadi 5 detik
+
   res.json({ status })
 })
 
