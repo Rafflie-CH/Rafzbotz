@@ -90,4 +90,3 @@ app.get("/status", (req, res) => {
 })
 
 /* AUTO START */
-startBot()
