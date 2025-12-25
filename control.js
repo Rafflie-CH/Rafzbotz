@@ -51,16 +51,6 @@ function stopBot(cb) {
     cb && cb()
   })
 }
-
-  botProcess.once("exit", () => {
-    botProcess = null
-    isRestarting = false
-    cb && cb()
-  })
-
-  botProcess.kill("SIGTERM")
-}
-
 /* ================= API ================= */
 
 app.get("/start", (req, res) => {
