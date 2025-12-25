@@ -1,5 +1,6 @@
 const express = require("express")
 const { spawn } = require("child_process")
+const treeKill = require("tree-kill")
 
 const app = express()
 
@@ -40,6 +41,16 @@ function stopBot(cb) {
     cb && cb()
     return
   }
+
+  const pid = botProcess.pid
+  console.log("🛑 Killing bot process tree:", pid)
+
+  treeKill(pid, "SIGKILL", () => {
+    botProcess = null
+    isRestarting = false
+    cb && cb()
+  })
+}
 
   botProcess.once("exit", () => {
     botProcess = null
