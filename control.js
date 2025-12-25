@@ -22,14 +22,12 @@ function startBot() {
   console.log("🚀 Starting bot...")
 
   botProcess = spawn("npm", ["start"], {
-    stdio: "inherit", // PENTING: biar bisa input nomor
+    stdio: "inherit", // supaya bisa input nomor
     shell: true
   })
 
-  // kasih waktu Baileys start + pairing
-  setTimeout(() => {
-    startServerOnce()
-  }, 5000)
+  // setelah bot hidup, baru buka server
+  setTimeout(startServerOnce, 5000)
 
   botProcess.once("exit", () => {
     botProcess = null
@@ -52,7 +50,8 @@ function stopBot(cb) {
   botProcess.kill("SIGTERM")
 }
 
-// ===== API =====
+/* ================= API ================= */
+
 app.get("/start", (req, res) => {
   startBot()
   res.json({ status: "ON" })
@@ -65,9 +64,7 @@ app.get("/stop", (req, res) => {
 
 app.get("/restart", (req, res) => {
   isRestarting = true
-  stopBot(() => {
-    setTimeout(startBot, 2000)
-  })
+  stopBot(() => setTimeout(startBot, 2000))
   res.json({ status: "RESTARTING" })
 })
 
@@ -77,5 +74,6 @@ app.get("/status", (req, res) => {
   res.json({ status: "ON" })
 })
 
-// ===== JANGAN listen di sini =====
-// server hanya dibuka setelah bot start
+/* ====== INI KUNCI NYAWA ====== */
+// START BOT SAAT CONTROL DIJALANKAN
+startBot()
