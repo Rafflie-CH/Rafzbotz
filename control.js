@@ -4,32 +4,33 @@ const { spawn } = require("child_process")
 const app = express()
 
 let botProcess = null
-let status = "OFF" // OFF | ON | RESTARTING
+let status = "OFF" // OFF | ON | STOPPING | RESTARTING
 let serverStarted = false
 
 function startServer() {
   if (serverStarted) return
   serverStarted = true
-
   app.listen(3000, () => {
     console.log("🔌 Control server running on port 3000")
   })
 }
 
 function startBot() {
-  if (botProcess || status === "RESTARTING") {
-    console.log("⏳ Bot masih proses, skip start")
+  if (botProcess || status !== "OFF") {
+    console.log("⏳ Start ditolak, status:", status)
     return
   }
 
   status = "ON"
+  console.log("▶️ Starting bot...")
 
   botProcess = spawn("npm", ["start"], {
     stdio: "inherit",
     shell: true
   })
 
-  botProcess.on("exit", () => {
+  botProcess.once("exit", () => {
+    console.log("⛔ Bot exited")
     botProcess = null
     status = "OFF"
   })
@@ -37,34 +38,49 @@ function startBot() {
   setTimeout(startServer, 3000)
 }
 
-function stopBot() {
-  if (!botProcess) return
-  status = "OFF"
+function stopBot(callback) {
+  if (!botProcess || status !== "ON") {
+    console.log("⏹️ Stop ditolak, status:", status)
+    return callback?.()
+  }
+
+  status = "STOPPING"
+  console.log("⏹️ Stopping bot...")
+
+  botProcess.once("exit", () => {
+    console.log("✅ Bot fully stopped")
+    botProcess = null
+    status = "OFF"
+    callback?.()
+  })
+
   botProcess.kill("SIGTERM")
-  botProcess = null
 }
 
+/* ================= API ================= */
+
 app.get("/start", (req, res) => {
-  if (status === "ON") return res.json({ status })
   startBot()
   res.json({ status })
 })
 
 app.get("/stop", (req, res) => {
-  if (status === "OFF") return res.json({ status })
   stopBot()
   res.json({ status })
 })
 
 app.get("/restart", (req, res) => {
-  if (status === "RESTARTING") return res.json({ status })
+  if (status !== "ON") {
+    res.json({ status })
+    return
+  }
 
   status = "RESTARTING"
-  stopBot()
+  console.log("🔁 Restarting bot...")
 
-  setTimeout(() => {
-    startBot()
-  }, 5000) // ⬅️ dari 2 detik jadi 5 detik
+  stopBot(() => {
+    setTimeout(startBot, 3000)
+  })
 
   res.json({ status })
 })
@@ -73,4 +89,5 @@ app.get("/status", (req, res) => {
   res.json({ status })
 })
 
+/* AUTO START */
 startBot()
