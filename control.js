@@ -30,7 +30,7 @@ function startBot() {
     botProcess = null
     status = "OFF"
   })
-  setTimeout(() => {
+setTimeout(() => {
     startServer()
   }, 3000)
 }
@@ -43,17 +43,13 @@ function stopBot() {
 }
 
 app.get("/start", (req, res) => {
-  if (status === "ON") {
-    return res.json({ status })
-  }
+  if (status === "ON") return res.json({ status })
   startBot()
   res.json({ status })
 })
 
 app.get("/stop", (req, res) => {
-  if (status === "OFF") {
-    return res.json({ status })
-  }
+  if (status === "OFF") return res.json({ status })
   stopBot()
   res.json({ status })
 })
@@ -61,11 +57,7 @@ app.get("/stop", (req, res) => {
 app.get("/restart", (req, res) => {
   status = "RESTARTING"
   stopBot()
-  setTimeout(() => startBot(), 2000)
-  res.json({ status })
-})
-
-app.get("/status", (req, res) => {
+  setTimeout(startBot, 2000)
   res.json({ status })
 })
 
