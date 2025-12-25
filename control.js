@@ -4,23 +4,32 @@ const { spawn } = require("child_process")
 const app = express()
 
 let botProcess = null
+let serverStarted = false
 let isRestarting = false
 
-// ===== Helper: status REAL dari process =====
-function getStatus() {
-  if (!botProcess) return "OFF"
-  if (botProcess.killed) return "OFF"
-  return isRestarting ? "RESTARTING" : "ON"
+function startServerOnce() {
+  if (serverStarted) return
+  serverStarted = true
+
+  app.listen(3000, () => {
+    console.log("🔌 Control server running on port 3000")
+  })
 }
 
-// ===== Start bot (ANTI DOUBLE SPAWN) =====
 function startBot() {
   if (botProcess || isRestarting) return
 
+  console.log("🚀 Starting bot...")
+
   botProcess = spawn("npm", ["start"], {
-    stdio: "inherit",
+    stdio: "inherit", // PENTING: biar bisa input nomor
     shell: true
   })
+
+  // kasih waktu Baileys start + pairing
+  setTimeout(() => {
+    startServerOnce()
+  }, 5000)
 
   botProcess.once("exit", () => {
     botProcess = null
@@ -28,7 +37,6 @@ function startBot() {
   })
 }
 
-// ===== Stop bot (TUNGGU EXIT) =====
 function stopBot(cb) {
   if (!botProcess) {
     cb && cb()
@@ -41,41 +49,33 @@ function stopBot(cb) {
     cb && cb()
   })
 
-  // SIGTERM dulu biar Baileys nutup rapi
   botProcess.kill("SIGTERM")
 }
 
 // ===== API =====
 app.get("/start", (req, res) => {
   startBot()
-  res.json({ status: getStatus() })
+  res.json({ status: "ON" })
 })
 
 app.get("/stop", (req, res) => {
   stopBot()
-  res.json({ status: getStatus() })
+  res.json({ status: "OFF" })
 })
 
 app.get("/restart", (req, res) => {
-  if (!botProcess) {
-    // kalau OFF, start aja
-    startBot()
-    return res.json({ status: getStatus() })
-  }
-
   isRestarting = true
   stopBot(() => {
-    setTimeout(startBot, 1500) // kasih napas
+    setTimeout(startBot, 2000)
   })
-
   res.json({ status: "RESTARTING" })
 })
 
 app.get("/status", (req, res) => {
-  res.json({ status: getStatus() })
+  if (!botProcess) return res.json({ status: "OFF" })
+  if (isRestarting) return res.json({ status: "RESTARTING" })
+  res.json({ status: "ON" })
 })
 
-// ===== Control server =====
-app.listen(3000, () => {
-  console.log("🔌 Control server running on port 3000")
-})
+// ===== JANGAN listen di sini =====
+// server hanya dibuka setelah bot start
