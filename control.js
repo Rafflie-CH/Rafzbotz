@@ -2,13 +2,25 @@ const express = require("express")
 const { spawn } = require("child_process")
 
 const app = express()
+
 let botProcess = null
 let status = "OFF" // OFF | ON | RESTARTING
+let serverStarted = false
+
+function startServer() {
+  if (serverStarted) return
+  serverStarted = true
+
+  app.listen(3000, () => {
+    console.log("🔌 Control server running on port 3000")
+  })
+}
 
 function startBot() {
   if (botProcess) return
 
   status = "ON"
+
   botProcess = spawn("npm", ["start"], {
     stdio: "inherit",
     shell: true
@@ -18,6 +30,9 @@ function startBot() {
     botProcess = null
     status = "OFF"
   })
+  setTimeout(() => {
+    startServer()
+  }, 3000)
 }
 
 function stopBot() {
@@ -43,23 +58,13 @@ app.get("/stop", (req, res) => {
   res.json({ status })
 })
 
-app.get("/restart", async (req, res) => {
-  if (status === "OFF") {
-    startBot()
-    return res.json({ status: "ON" })
-  }
-
+app.get("/restart", (req, res) => {
   status = "RESTARTING"
   stopBot()
   setTimeout(() => startBot(), 2000)
-
   res.json({ status })
 })
 
 app.get("/status", (req, res) => {
   res.json({ status })
-})
-
-app.listen(3000, () => {
-  console.log("🔌 Control server running on port 3000")
 })
