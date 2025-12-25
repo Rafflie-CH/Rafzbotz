@@ -703,48 +703,7 @@ if (m.message?.groupStatusMentionMessage && db?.data?.chats[m.chat]?.antitagsw?.
   }
 }
 
- //===============[ Anti Spam ]===========================
-
-// Anti Spam
-// Sumber?? Ch ini 
-
-// taruh aja di sebelum switch case :
-global.userSpam = global.userSpam || {};
-global.userBlocked = global.userBlocked || {};
-global.groupWarned = global.groupWarned || {};
-const spamWindow = 2 * 1000; // dalam 2 detik
-const spamLimit = 3; // maksimal 3x cmd
-const blockTime = 10 * 1000; // ban 10 detik
-const now = Date.now();
-const sender = m.sender;
-const isPrivateChat = m.chat.endsWith('@s.whatsapp.net');
-const biyuzxn = m.isGroup;
-if (global.userBlocked[sender]) return;
-if (!global.userSpam[sender]) global.userSpam[sender] = [];
-global.userSpam[sender].push(now);
-global.userSpam[sender] = global.userSpam[sender].filter(ts => now - ts <= spamWindow);
-if (isPrivateChat && global.userSpam[sender].length >= spamLimit) {
-  global.userBlocked[sender] = true;
-  global.userSpam[sender] = [];
-  await m.reply('🚫 Kamu terlalu cepat kirim perintah!\nBot akan nge-block kamu selama 10 detik... santai dulu ya.');
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  await Sky.updateBlockStatus(sender, 'block');
-  console.log(`[ANTI-SPAM] ${sender} diblokir karena spam di private chat.`);
-  setTimeout(async () => {
-// buat unblock
-    await Sky.updateBlockStatus(sender, 'unblock');
-    delete global.userBlocked[sender];
-    console.log(`[ANTI-SPAM] ${sender} sudah di-unblock otomatis.`);
-  }, blockTime);
-}
-if (biyuzxn && global.userSpam[sender].length >= spamLimit) {
-  const warnKey = `${m.chat}|${sender}`;
-  if (!global.groupWarned[warnKey]) {
-    global.groupWarned[warnKey] = true;
-    await m.reply('⚠️ Kamu terlalu cepat kirim command!\nCooldown 10 detik dulu ya biar gak dianggap spam.');
-    setTimeout(() => delete global.groupWarned[warnKey], blockTime);
-  }
-}
+ 
         
 //====================[ Ban/unban chat ]===================================
         
