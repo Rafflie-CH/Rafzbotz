@@ -1,4 +1,4 @@
-const { stopBot } = require("../../../../dashboard-runner")
+const { stopBot } = require("@/dashboard-runner.js")
 const { isOwner } = require("@/lib/auth")
 
 module.exports = async function POST(req) {
