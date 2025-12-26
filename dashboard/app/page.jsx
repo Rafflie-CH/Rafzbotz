@@ -83,7 +83,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        <button className="glass" onClick={showMyIp}>
+        <button className="glass btn" onClick={showMyIp}>
       Show My IP
     </button>
 
@@ -224,6 +224,11 @@ export default function Dashboard() {
           padding: 14px 18px;
           border-radius: 14px;
           animation: slide .4s ease;
+        }
+
+        .glass.btn {
+          padding: 12px;
+          border-radius: 14px;
         }
 
         @keyframes slide {
