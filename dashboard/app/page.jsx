@@ -8,10 +8,19 @@ export default function Dashboard() {
   const [notif, setNotif] = useState("")
   const [number, setNumber] = useState("")
   const [showLogs, setShowLogs] = useState(false)
+  const [myIp, setMyIp] = useState("")
 
   const notify = (t) => {
     setNotif(t)
     setTimeout(() => setNotif(""), 3000)
+  }
+
+  const showMyIp = async () => {
+    const res = await fetch("/dashboard/api/my-ip")
+    const data = await res.json()
+
+    setMyIp(data.ip)
+    notify("Your IP: " + data.ip)
   }
 
   const refresh = async () => {
@@ -74,10 +83,14 @@ export default function Dashboard() {
           )}
         </div>
 
+        <button className="glass" onClick={showMyIp}>
+      Show My IP
+    </button>
+
         {owner && (
           <>
             <input
-              placeholder="62xxxx"
+              placeholder="+62xxxx"
               value={number}
               onChange={e => setNumber(e.target.value)}
               className="input"
