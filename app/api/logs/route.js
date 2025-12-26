@@ -1,4 +1,4 @@
-const { isOwner } = require("@/lib/auth")
+const { isOwner } = require("../../lib/auth")
 module.exports = async req =>
   isOwner(req)
     ? Response.json({ logs: global.botLogs || [] })
