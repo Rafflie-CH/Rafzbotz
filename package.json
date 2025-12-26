@@ -7,7 +7,9 @@
   "scripts": {
     "postinstall": "node install-replit.js",
     "start": "node main.js",
-    "control": "node control.js"
+    "control": "node control.js",
+    "build": "next build",
+    "dev": "next dev"
   },
   "keywords": [
     "base",
@@ -119,10 +121,12 @@
     "url": "^0.11.4",
     "util": "^0.12.5",
     "webp-converter": "^2.3.3",
-    "whatsapp-web.js": "^1.23.0",
     "yargs": "^17.6.2",
     "youtube-yts": "latest",
     "yt-search": "latest",
-    "yts": "latest"
+    "yts": "latest",
+    "next": "14.2.5",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
   }
 }
