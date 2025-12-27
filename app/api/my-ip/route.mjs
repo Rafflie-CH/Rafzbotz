@@ -1,5 +1,8 @@
-import { getIP } from "../../lib/auth.mjs"
+module.exports = async (req) => {
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0] ||
+    req.headers.get("x-real-ip") ||
+    "unknown"
 
-module.exports = async function GET(req) {
-  return Response.json({ ip: getIP(req) })
+  return Response.json({ ip })
 }
