@@ -1,4 +1,4 @@
-import { isOwner } from "../../lib/auth"
+import { isOwner } from "../../lib/auth.mjs"
 module.exports = async req =>
   isOwner(req)
     ? Response.json({ logs: global.botLogs || [] })
