@@ -1,20 +1,19 @@
-function getIP(req) {
+import { headers } from "next/headers"
+
+export function getIP() {
+  const h = headers()
   return (
-    req.headers.get("cf-connecting-ip") || // Cloudflare
-    req.headers.get("x-forwarded-for")?.split(",")[0] ||
-    req.headers.get("x-real-ip") ||
-    ""
+    h.get("x-forwarded-for")?.split(",")[0] ||
+    h.get("x-real-ip") ||
+    "0.0.0.0"
   )
 }
 
-function isOwner(req) {
-  const raw = process.env.OWNER_IPS || ""
-  const list = raw.split(",").map(v => v.trim()).filter(Boolean)
-  const ip = getIP(req)
+export function isOwner() {
+  const ip = getIP()
+  const owners = (process.env.OWNER_IPS || "")
+    .split(",")
+    .map(v => v.trim())
 
-  return list.some(v =>
-    v.endsWith(".") ? ip.startsWith(v) : ip === v
-  )
+  return owners.includes(ip)
 }
-
-module.exports = { isOwner, getIP }
