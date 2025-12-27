@@ -1,37 +1,33 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 export default function Dashboard() {
   const [status, setStatus] = useState("OFF")
   const [logs, setLogs] = useState([])
   const [owner, setOwner] = useState(false)
-  const [notif, setNotif] = useState("")
+  const [notif, setNotif] = useState(null)
+  const [loading, setLoading] = useState(false)
   const [number, setNumber] = useState("")
   const [showLogs, setShowLogs] = useState(false)
-  const [myIp, setMyIp] = useState("")
+  const [newIp, setNewIp] = useState("")
+  const logRef = useRef(null)
 
-  const notify = (t) => {
-    setNotif(t)
-    setTimeout(() => setNotif(""), 3000)
-  }
-
-  const showMyIp = async () => {
-    const res = await fetch("/dashboard/api/my-ip")
-    const data = await res.json()
-
-    setMyIp(data.ip)
-    notify("Your IP: " + data.ip)
+  const toast = (msg, type = "ok") => {
+    setNotif({ msg, type })
+    setTimeout(() => setNotif(null), 3500)
   }
 
   const refresh = async () => {
-    const s = await fetch("/dashboard/api/status").then(r => r.json())
-    setStatus(s.status)
+    try {
+      const s = await fetch("/dashboard/api/status").then(r => r.json())
+      setStatus(s.status)
 
-    const l = await fetch("/dashboard/api/logs")
-    if (l.ok) {
-      setOwner(true)
-      setLogs((await l.json()).logs)
-    }
+      const l = await fetch("/dashboard/api/logs")
+      if (l.ok) {
+        setOwner(true)
+        setLogs((await l.json()).logs)
+      }
+    } catch {}
   }
 
   useEffect(() => {
@@ -40,80 +36,99 @@ export default function Dashboard() {
     return () => clearInterval(i)
   }, [])
 
+  useEffect(() => {
+    if (logRef.current)
+      logRef.current.scrollTop = logRef.current.scrollHeight
+  }, [logs])
+
   const post = async (url, body) => {
-    await fetch(url, {
-      method: "POST",
-      body: body ? JSON.stringify(body) : null
-    })
-    notify("Action executed")
-    refresh()
+    try {
+      setLoading(true)
+      const r = await fetch(url, {
+        method: "POST",
+        body: body ? JSON.stringify(body) : null
+      })
+      if (!r.ok) throw 0
+      toast("Success")
+      refresh()
+    } catch {
+      toast("Error", "err")
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const uploadCreds = async (e) => {
-    const f = e.target.files[0]
-    if (!f) return
-
-    const fd = new FormData()
-    fd.append("file", f)
-
-    await fetch("/dashboard/api/upload-creds", {
-      method: "POST",
-      body: fd
-    })
-
-    notify("Creds uploaded")
+  const addOwnerIp = async () => {
+    try {
+      const r = await fetch("/dashboard/api/add-owner", {
+        method: "POST",
+        body: JSON.stringify({ ip: newIp })
+      })
+      if (!r.ok) throw 0
+      toast("IP noted (add to ENV)")
+      setNewIp("")
+    } catch {
+      toast("Failed", "err")
+    }
   }
 
   return (
     <div className="bg">
-      <div className="panel glass">
-        <h1>WA Bot Control</h1>
+      <div className="card glass">
+        <header>
+          <h1>WA Bot Control</h1>
+          <div className={`status ${status}`}>
+            <span /> {status}
+          </div>
+        </header>
 
-        <p>Status: <b className={status === "ON" ? "on" : "off"}>{status}</b></p>
-
-        <div className="buttons">
-          <button className="rgb" onClick={() => post("/dashboard/api/start")}>
+        <div className="actions">
+          <button className="rgb" disabled={loading}
+            onClick={() => post("/dashboard/api/start")}>
             START
           </button>
 
           {owner && (
-            <button className="rgb danger" onClick={() => post("/dashboard/api/stop")}>
+            <button className="rgb danger" disabled={loading}
+              onClick={() => post("/dashboard/api/stop")}>
               STOP
             </button>
           )}
         </div>
 
-        <button className="glass btn" onClick={showMyIp}>
-      Show My IP
-    </button>
-
         {owner && (
           <>
             <input
+              className="input"
               placeholder="+62xxxx"
               value={number}
               onChange={e => setNumber(e.target.value)}
-              className="input"
             />
 
-            <button
-              className="rgb"
-              onClick={() => post("/dashboard/api/pair", { number })}
-            >
+            <button className="rgb"
+              onClick={() => post("/dashboard/api/pair", { number })}>
               PAIR NUMBER
             </button>
 
-            <label className="upload">
-              UPLOAD CREDS.JSON
-              <input type="file" hidden onChange={uploadCreds} />
-            </label>
+            <div className="ownerBox">
+              <input
+                className="input"
+                placeholder="Add owner IP"
+                value={newIp}
+                onChange={e => setNewIp(e.target.value)}
+              />
+              <button className="rgb mini" onClick={addOwnerIp}>
+                ADD IP
+              </button>
+            </div>
 
-            <button className="toggle" onClick={() => setShowLogs(!showLogs)}>
+            <button className="toggle"
+              onClick={() => setShowLogs(!showLogs)}>
               {showLogs ? "Hide Logs" : "Show Logs"}
             </button>
 
             {showLogs && (
-              <pre className="logbox">
+              <pre className="logbox" ref={logRef}>
                 {logs.join("") || "No logs"}
               </pre>
             )}
@@ -121,120 +136,116 @@ export default function Dashboard() {
         )}
       </div>
 
-      {notif && <div className="notif">{notif}</div>}
+      {notif && (
+        <div className={`toast ${notif.type}`}>
+          {notif.msg}
+        </div>
+      )}
 
       <style jsx>{`
-        .bg {
-          min-height: 100vh;
-          background: radial-gradient(circle at top, #0b1d3a, #020617);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 20px;
-        }
-
-        .panel {
-          width: 100%;
-          max-width: 520px;
-          padding: 24px;
-          border-radius: 22px;
-          color: white;
-        }
-
-        .glass {
-          background: rgba(255,255,255,0.08);
-          backdrop-filter: blur(20px);
-          border: 1px solid rgba(255,255,255,0.18);
-          box-shadow: 0 30px 60px rgba(0,0,0,0.6);
-        }
-
-        .buttons {
-          display: flex;
-          gap: 12px;
-          margin-bottom: 12px;
-        }
-
-        .rgb {
-          flex: 1;
-          padding: 14px;
-          border-radius: 14px;
+        .bg{
+          min-height:100vh;
+          display:flex;
+          align-items:center;
+          justify-content:center;
           background:
-            linear-gradient(#020617, #020617) padding-box,
-            linear-gradient(120deg, red, cyan, lime, magenta, red) border-box;
-          border: 2px solid transparent;
-          animation: rgb 4s linear infinite;
-          color: white;
+            radial-gradient(circle at top,#0b1435,#020617);
         }
 
-        .danger { filter: hue-rotate(160deg); }
-
-        @keyframes rgb {
-          to { background-position: 400%; }
+        .glass{
+          background:rgba(20,25,50,.6);
+          backdrop-filter:blur(20px);
+          border:1px solid rgba(255,255,255,.1);
         }
 
-        .input {
-          width: 100%;
-          margin-top: 10px;
-          padding: 10px;
-          border-radius: 10px;
-          background: rgba(0,0,0,0.4);
-          border: none;
-          color: white;
+        .card{
+          width:100%;
+          max-width:640px;
+          padding:26px;
+          border-radius:24px;
+          color:#e5e7eb;
         }
 
-        .upload {
-          display: block;
-          margin-top: 10px;
-          padding: 12px;
-          text-align: center;
-          border-radius: 12px;
-          background: rgba(255,255,255,0.1);
+        header{
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          margin-bottom:18px;
         }
 
-        .toggle {
-          margin-top: 10px;
-          width: 100%;
-          padding: 10px;
-          background: transparent;
-          border: 1px solid rgba(255,255,255,0.3);
-          border-radius: 10px;
+        .status span{
+          width:10px;height:10px;border-radius:50%;
+          background:${status === "ON" ? "#22c55e" : "#ef4444"};
+          box-shadow:0 0 10px currentColor;
+          margin-right:8px;
         }
 
-        .logbox {
-          margin-top: 10px;
-          max-height: 260px;
-          overflow: auto;
-          background: rgba(0,0,0,0.45);
-          padding: 12px;
-          border-radius: 12px;
-          font-family: monospace;
-          font-size: 12px;
-          color: #4ade80;
+        .actions{display:flex;gap:14px}
+
+        .rgb{
+          flex:1;
+          padding:14px;
+          border-radius:16px;
+          border:2px solid transparent;
+          color:white;
+          font-weight:700;
+          background:
+            linear-gradient(#020617,#020617) padding-box,
+            linear-gradient(120deg,#00fff0,#7f5cff,#ff4ecd,#22c55e,#00fff0) border-box;
+          background-size:300%;
+          animation:rgb 6s linear infinite,hue 8s linear infinite;
         }
 
-        .on { color: #4ade80 }
-        .off { color: #f87171 }
+        .danger{filter:hue-rotate(160deg)}
+        .mini{flex:0 0 auto;padding:10px 14px}
 
-        .notif {
-          position: fixed;
-          bottom: 20px;
-          right: 20px;
-          background: rgba(0,0,0,0.7);
-          backdrop-filter: blur(10px);
-          padding: 14px 18px;
-          border-radius: 14px;
-          animation: slide .4s ease;
+        .input{
+          width:100%;
+          margin-top:10px;
+          padding:12px;
+          border-radius:14px;
+          background:rgba(0,0,0,.4);
+          border:none;
+          color:white;
         }
 
-        .glass.btn {
-          padding: 12px;
-          border-radius: 14px;
+        .ownerBox{display:flex;gap:10px;margin-top:10px}
+
+        .toggle{
+          margin-top:12px;
+          width:100%;
+          padding:10px;
+          border-radius:14px;
+          border:1px solid rgba(255,255,255,.25);
+          background:transparent;
         }
 
-        @keyframes slide {
-          from { transform: translateX(120%); opacity: 0 }
-          to { transform: translateX(0); opacity: 1 }
+        .logbox{
+          margin-top:12px;
+          max-height:260px;
+          overflow:auto;
+          background:rgba(0,0,0,.55);
+          padding:14px;
+          border-radius:16px;
+          font-family:monospace;
+          font-size:12px;
+          color:#4ade80;
         }
+
+        .toast{
+          position:fixed;
+          bottom:24px;
+          right:24px;
+          padding:14px 18px;
+          border-radius:16px;
+          backdrop-filter:blur(12px);
+          background:rgba(0,0,0,.6);
+        }
+
+        .toast.err{background:rgba(239,68,68,.25)}
+
+        @keyframes rgb{to{background-position:300%}}
+        @keyframes hue{to{filter:hue-rotate(360deg)}}
       `}</style>
     </div>
   )
