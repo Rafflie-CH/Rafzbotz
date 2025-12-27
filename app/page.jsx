@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react"
 
 export default function Dashboard() {
+  /* ===== STATE ===== */
   const [status, setStatus] = useState("OFF")
   const [owner, setOwner] = useState(false)
   const [notif, setNotif] = useState(null)
@@ -23,35 +24,40 @@ export default function Dashboard() {
   const cpuHist = useRef(Array(24).fill(0))
   const ramHist = useRef(Array(24).fill(0))
 
+  /* ===== TOAST ===== */
   const toast = (msg, type="ok") => {
-    setNotif({msg,type})
+    setNotif({ msg, type })
     setTimeout(()=>setNotif(null),3000)
   }
 
+  /* ===== FETCH LOOP ===== */
   const refresh = async () => {
     try {
-      const s = await fetch("/dashboard/api/status").then(r=>r.json())
+      /* STATUS (PUBLIC) */
+      const s = await fetch("/api/status").then(r=>r.json())
       setStatus(s.status)
 
-      const sysRes = await fetch("/dashboard/api/system")
-      if(sysRes.ok){
+      /* SYSTEM (PUBLIC) */
+      const sysRes = await fetch("/api/system")
+      if (sysRes.ok) {
         const d = await sysRes.json()
         setSys(d)
 
-        cpuHist.current.push(d.cpu||0)
+        cpuHist.current.push(d.cpu || 0)
         cpuHist.current.shift()
 
         ramHist.current.push(
-          d.totalRam ? Math.round((d.ram/d.totalRam)*100) : 0
+          d.totalRam ? Math.round((d.ram / d.totalRam) * 100) : 0
         )
         ramHist.current.shift()
       }
 
-      const l = await fetch("/dashboard/api/logs")
-      if(l.ok){
+      /* LOGS = OWNER CHECK */
+      const l = await fetch("/api/logs")
+      if (l.ok) {
         setOwner(true)
-        setLogs((await l.json()).logs||[])
-      }else{
+        setLogs((await l.json()).logs || [])
+      } else {
         setOwner(false)
       }
     } catch {}
@@ -59,33 +65,34 @@ export default function Dashboard() {
 
   useEffect(()=>{
     refresh()
-    const i=setInterval(refresh,2000)
-    return()=>clearInterval(i)
+    const i = setInterval(refresh, 2000)
+    return ()=>clearInterval(i)
   },[])
 
   useEffect(()=>{
     if(logRef.current)
-      logRef.current.scrollTop=logRef.current.scrollHeight
+      logRef.current.scrollTop = logRef.current.scrollHeight
   },[logs])
 
-  const showIp = async()=>{
-    try{
-      const r=await fetch("/dashboard/api/my-ip")
-      const d=await r.json()
-      setMyIp(d.ip)
-      toast(`IP: ${d.ip}`)
-    }catch{
-      toast("Failed get IP","err")
+  /* ===== ACTIONS ===== */
+  const post = async (url) => {
+    try {
+      await fetch(url, { method:"POST" })
+      toast("Success")
+      refresh()
+    } catch {
+      toast("Failed", "err")
     }
   }
 
-  const post = async(url)=>{
-    try{
-      await fetch(url,{method:"POST"})
-      toast("Success")
-      refresh()
-    }catch{
-      toast("Failed","err")
+  const showIp = async () => {
+    try {
+      const r = await fetch("/api/my-ip")
+      const d = await r.json()
+      setMyIp(d.ip)
+      toast(`IP: ${d.ip}`)
+    } catch {
+      toast("Failed get IP", "err")
     }
   }
 
@@ -105,7 +112,7 @@ export default function Dashboard() {
       {/* MAIN */}
       <main className="main">
 
-        {/* TOP */}
+        {/* HEADER */}
         <div className="top">
           <div>
             <h1>Dashboard</h1>
@@ -116,7 +123,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* METRICS */}
+        {/* METRICS (PUBLIC) */}
         <section className="cards">
           <Metric title="Ping" value={sys.ping!=null?`${sys.ping} ms`:"—"} />
           <Metric title="Bot Uptime" value={`${Math.floor(sys.botUptime/60)} min`} />
@@ -124,22 +131,22 @@ export default function Dashboard() {
           <Metric title="Disk" value={`${sys.disk||0} GB`} />
         </section>
 
-        {/* CHARTS */}
+        {/* CHARTS (PUBLIC) */}
         <section className="charts">
           <Graph title="CPU Usage" data={cpuHist.current} />
           <Graph title="RAM Usage" data={ramHist.current} />
         </section>
 
-        {/* CONTROL */}
+        {/* CONTROL (PUBLIC + OWNER) */}
         <section className="panel">
           <h3>Bot Control</h3>
           <div className="actions">
-            <button className="btn primary" onClick={()=>post("/dashboard/api/start")}>
+            <button className="btn primary" onClick={()=>post("/api/start")}>
               Start Bot
             </button>
 
             {owner && (
-              <button className="btn danger" onClick={()=>post("/dashboard/api/stop")}>
+              <button className="btn danger" onClick={()=>post("/api/stop")}>
                 Stop Bot
               </button>
             )}
@@ -151,7 +158,7 @@ export default function Dashboard() {
           {myIp && <div className="ip">Your IP: {myIp}</div>}
         </section>
 
-        {/* LOGS */}
+        {/* LOGS (OWNER ONLY) */}
         {owner && (
           <section className="panel">
             <h3>Realtime Logs</h3>
@@ -177,38 +184,35 @@ export default function Dashboard() {
         .app{
           display:flex;
           min-height:100vh;
-          background:#0b1020;
+          background:radial-gradient(circle at top,#0b1435,#020617);
           color:#e5e7eb;
           font-family:Inter,system-ui
         }
 
-        /* SIDEBAR */
         .sidebar{
           width:240px;
           padding:28px;
           background:linear-gradient(180deg,#0e1530,#080c1a);
           border-right:1px solid rgba(255,255,255,.06)
         }
-        .brand{
-          font-size:22px;
-          font-weight:700;
-          margin-bottom:32px;
-        }
+
+        .brand{font-size:22px;font-weight:700;margin-bottom:32px}
+
         nav button{
           width:100%;
           padding:14px;
           margin-bottom:12px;
           border-radius:14px;
           background:transparent;
-          border:1px solid rgba(255,255,255,.08);
-          color:#e5e7eb;
+          border:1px solid rgba(255,255,255,.1);
+          color:white;
           text-align:left;
         }
+
         nav .active{
-          background:linear-gradient(90deg,#7f5cff33,transparent);
+          background:linear-gradient(90deg,#7f5cff55,transparent);
         }
 
-        /* MAIN */
         .main{
           flex:1;
           padding:40px;
@@ -222,8 +226,6 @@ export default function Dashboard() {
           align-items:flex-end;
           margin-bottom:30px;
         }
-        .top h1{margin:0;font-size:34px}
-        .top p{margin:4px 0 0;color:#9ca3af}
 
         .badge{
           display:flex;
@@ -231,59 +233,62 @@ export default function Dashboard() {
           gap:8px;
           font-weight:600;
         }
+
         .badge span{
           width:10px;height:10px;border-radius:50%;
           background:${status==="ON"?"#22c55e":"#ef4444"};
           box-shadow:0 0 12px currentColor;
         }
 
-        /* METRICS */
         .cards{
           display:grid;
           grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
           gap:20px;
           margin-bottom:30px;
         }
+
         .metric{
           padding:26px;
           border-radius:20px;
-          background:rgba(255,255,255,.03);
-          border:1px solid rgba(255,255,255,.08);
+          background:rgba(255,255,255,.04);
+          border:1px solid rgba(255,255,255,.1);
         }
-        .metric h4{margin:0;color:#9ca3af;font-size:14px}
+
+        .metric h4{margin:0;color:#9ca3af}
         .metric b{font-size:28px}
 
-        /* CHART */
         .charts{
           display:grid;
           grid-template-columns:1fr 1fr;
           gap:24px;
           margin-bottom:30px;
         }
+
         .graph{
           padding:26px;
           border-radius:22px;
-          background:rgba(255,255,255,.03);
-          border:1px solid rgba(255,255,255,.08);
+          background:rgba(255,255,255,.04);
+          border:1px solid rgba(255,255,255,.1);
         }
+
         .bars{
           display:flex;
           align-items:flex-end;
           gap:4px;
           height:160px;
         }
+
         .bars div{
           flex:1;
           border-radius:4px 4px 0 0;
           background:linear-gradient(180deg,#22c55e,#7f5cff);
         }
 
-        /* PANEL */
         .panel{
           padding:28px;
           border-radius:24px;
-          background:rgba(255,255,255,.03);
-          border:1px solid rgba(255,255,255,.08);
+          background:rgba(255,255,255,.04);
+          border:1px solid rgba(255,255,255,.1);
           margin-bottom:30px;
         }
 
@@ -293,21 +298,26 @@ export default function Dashboard() {
           flex-wrap:wrap;
           margin-top:14px;
         }
+
         .btn{
           padding:14px 26px;
           border-radius:16px;
           border:none;
           font-weight:600;
         }
+
         .primary{
           background:linear-gradient(135deg,#7f5cff,#22c55e);
         }
+
         .danger{
           background:linear-gradient(135deg,#ef4444,#b91c1c);
         }
+
         .ghost{
           background:transparent;
           border:1px solid rgba(255,255,255,.2);
+          color:white;
         }
 
         .logs{
@@ -316,6 +326,7 @@ export default function Dashboard() {
           overflow:auto;
           font-family:monospace;
         }
+
         .log.ok{color:#4ade80}
         .log.err{color:#f87171}
         .muted{color:#9ca3af}
@@ -341,6 +352,7 @@ export default function Dashboard() {
   )
 }
 
+/* COMPONENTS */
 function Metric({title,value}){
   return(
     <div className="metric">
@@ -355,9 +367,9 @@ function Graph({title,data}){
     <div className="graph">
       <h4 style={{color:"#9ca3af",marginBottom:12}}>{title}</h4>
       <div className="bars">
-        {data.map((v,i)=>
+        {data.map((v,i)=>(
           <div key={i} style={{height:`${Math.min(v,100)}%`}}/>
-        )}
+        ))}
       </div>
     </div>
   )
