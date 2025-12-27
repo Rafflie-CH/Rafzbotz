@@ -1,4 +1,4 @@
-const { startBot } = require("@/dashboard-runner.js")
+import { startBot } from "@/dashboard-runner.js"
 
 module.exports = async function POST() {
   startBot()
