@@ -1,5 +1,5 @@
 import { stopBot } from "@/dashboard-runner.js"
-import { isOwner } from "../../lib/auth"
+import { isOwner } from "../../lib/auth.mjs"
 
 module.exports = async function POST(req) {
   if (!isOwner(req)) return new Response("Forbidden", { status: 403 })
