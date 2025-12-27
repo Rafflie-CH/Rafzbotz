@@ -1,6 +1,6 @@
 const fs = require("fs")
 const path = require("path")
-const { isOwner } = require("../../lib/auth")
+const { isOwner } = require("../../lib/auth.mjs")
 
 module.exports = async function POST(req) {
   if (!isOwner(req)) return new Response("Forbidden", { status: 403 })
