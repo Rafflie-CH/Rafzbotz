@@ -1,4 +1,4 @@
-const { isOwner } = require("../../lib/auth")
+import { isOwner } from "@/lib/auth"
 
 export async function POST(req) {
   if (!isOwner())
