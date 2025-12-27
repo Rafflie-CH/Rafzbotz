@@ -1,5 +1,5 @@
-const { startBot } = require("@/dashboard-runner.js")
-const { isOwner } = require("../../lib/auth")
+import { startBot } from "@/dashboard-runner.js"
+import { isOwner } from "../../lib/auth"
 
 module.exports = async function POST(req) {
   if (!isOwner(req)) return new Response("Forbidden", { status: 403 })
