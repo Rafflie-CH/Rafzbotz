@@ -142,7 +142,7 @@ export default function Dashboard() {
 
           {/* 🔥 SYSTEM STATS */}
           <div className="stats">
-            <Stat label="Ping" value={`${sys.ping} ms`} percent={Math.min(sys.ping * 10, 100)} />
+            <Stat label="Ping" value={sys.lastUpdate ? `${sys.ping} ms` : "—"} percent={sys.lastUpdate ? Math.min(sys.ping * 10, 100) : 0} />
             <Stat label="Bot Uptime" value={`${Math.floor(sys.botUptime / 60)} min`} percent={100} />
             <Stat label="VPS Uptime" value={`${Math.floor(sys.vpsUptime / 3600)} h`} percent={100} />
             <Stat label="RAM" value={`${sys.totalRam} MB`} percent={sys.totalRam / 100} />
