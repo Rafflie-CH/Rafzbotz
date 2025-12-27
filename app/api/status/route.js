@@ -1,2 +1,5 @@
-module.exports = async () =>
-  Response.json({ status: global.botStatus || "OFF" })
+export async function GET() {
+  return Response.json({
+    status: global.botStatus || "OFF"
+  })
+}
