@@ -171,7 +171,9 @@ await Solving(Sky, store)
 //================================================================================
 	
 Sky.ev.on('messages.upsert', async (message) => {
- await MessagesUpsert(Sky, message, store);
+const start = Date.now()
+await MessagesUpsert(Sky, message, store);
+updateStats(start)
 });
 
 //================================================================================
@@ -357,6 +359,15 @@ Sky.ev.on('groups.update', async (update) => {
 		}
 });
 
+function updateStats(start) {
+  const os = require("os")
+  global.botStats = {
+    ...(global.botStats || {}),
+    ping: Date.now() - start,
+    botUptime: process.uptime(),
+    vpsUptime: os.uptime()
+  }
+}
 //================================================================================
 
 return Sky
