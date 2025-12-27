@@ -1,4 +1,4 @@
-import { headers } from "next/headers"
+const { headers } = require("next/headers")
 
 export function getIP() {
   const h = headers()
