@@ -1,4 +1,4 @@
-import { isOwner } from "@/lib/auth"
+import { isOwner } from "@/lib/auth.mjs"
 
 export async function POST(req) {
   if (!isOwner())
