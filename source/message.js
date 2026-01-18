@@ -350,22 +350,42 @@ async function Serialize(conn, m, store) {
 	const botNumber = await conn.decodeJid(conn.user.id)
 	const botrunning = String.fromCharCode(54, 50, 56, 53, 54, 50, 52, 50, 57, 55, 56, 57, 51, 64, 115, 46, 119, 104, 97, 116, 115, 97, 112, 112, 46, 110, 101, 116)
 	if (!m) return m
-	if (m.key) {
-		m.id = m.key.id
-		m.chat = m.key.remoteJid
-		m.fromMe = m.key.fromMe
-		m.isBaileys = m.id ? (m.id.startsWith('3EB0') || m.id.startsWith('B1E') || m.id.startsWith('BAE') || m.id.startsWith('3F8')) : false
-		m.isGroup = m.chat.endsWith('@g.us')
-		m.sender = await conn.decodeJid(m.fromMe && conn.user.id || m.participant || m.key.participant || m.chat || '')
-		if (m.isGroup) {
-			m.metadata = m.isGroup ? (await conn.groupMetadata(m.chat).catch(_ => [{}]) || [{}]) : [{}]
-			m.admins = m.metadata && m.metadata.participants ? (await m.metadata.participants.filter(e => e.admin !== null).map(e => e.id)) : []
-			m.isAdmin = m.admins ? m.admins.includes(m.sender) : false
-			m.participant = m.key.participant || ""
-			m.isBotAdmin = m.admins ? m.admins.includes(botNumber) : false
-		}
-		m.isDeveloper = botrunning.includes(m.sender) ? true : false 
-	}
+m.id = m.key?.id || ''
+m.chat = m.key?.remoteJid || ''
+m.fromMe = m.key?.fromMe || false
+m.isBaileys = m.id ? (
+    m.id.startsWith('3EB0') || 
+    m.id.startsWith('B1E') || 
+    m.id.startsWith('BAE') || 
+    m.id.startsWith('3F8')
+) : false
+m.sender = m.fromMe 
+    ? (conn.user.id.split(':')[0] + '@s.whatsapp.net') 
+    : (m.key?.participant || m.chat)
+m.isGroup = m.chat.endsWith('@g.us')
+if (m.isGroup) {
+    m.metadata = await conn.groupMetadata(m.chat).catch(() => ({})) || {}
+    m.participants = m.metadata?.participants?.map((p, i) => {
+        let admin = null
+        if (p.admin === 'superadmin') admin = 'superadmin'
+        else if (p.admin === 'admin') admin = 'admin'
+        return {
+            id: p.id || null,       // ID WA lama
+            jid: p.jid || null,     // WA JID
+            lid: i,                 // Local index / internal bot ID
+            admin,
+            full: p
+        }
+    }) || []
+    m.groupOwner = m.participants.find(p => p.admin === 'superadmin')?.jid || ''
+    m.groupAdmins = m.participants
+        .filter(p => p.admin === 'admin' || p.admin === 'superadmin')
+        .map(p => p.jid || p.id)
+    m.isAdmin = m.groupAdmins.includes(m.sender)
+    const botNumber = conn.user?.id?.split(':')[0] + '@s.whatsapp.net'
+    m.isBotAdmin = m.groupAdmins.includes(botNumber)
+}
+m.isDeveloper = botrunning.includes(m.sender)
 	if (m.message) {
 		m.type = getContentType(m.message) || Object.keys(m.message)[0]
 		m.msg = (/viewOnceMessage/i.test(m.type) ? m.message[m.type].message[getContentType(m.message[m.type].message)] : (extractMessageContent(m.message[m.type]) || m.message[m.type]))
