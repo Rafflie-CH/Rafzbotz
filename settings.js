@@ -28,6 +28,7 @@ global.packname = 'SAN (SEKTE ANTI NYOLONG)'
 global.author = 'Rafzbot BY YT: MC RafflieAditya CH'
 global.botname = 'RAFZ BOT BY RAFZZ'
 global.botname2 = 'RAFZ BOT'
+global.paircode = 'RAFZCODE' // Kode Pairing 
 
 global.tempatDB = 'database.json' // Jangan ubah
 global.pairing_code = true // Jangan ubah
