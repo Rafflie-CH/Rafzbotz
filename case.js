@@ -688,16 +688,20 @@ if (!pluginsDisable) return
 
 if (m.message?.groupStatusMentionMessage && db?.data?.chats[m.chat]?.antitagsw?.status) {
   let user = m.key.participant
+  let bang = m.key.id
   let data = db.data.chats[m.chat].antitagsw
   if (!data.count) data.count = {}
   if (!data.count[user]) data.count[user] = 1
   else data.count[user]++
-  if (data.count[user] >= 2) { // Ubah max kick di sini kalau mau
+  if (data.count[user] >= 1) { // Ubah max kick di sini kalau mau
+     await Sky.sendMessage(m.chat, { delete: { remoteJid: m.chat, fromMe: false, id: bang, participant: user }})
+     m.reply("Maaf Anda saya kick karena anda telah mencapai batas maximal peringatan")
     await Sky.groupParticipantsUpdate(m.chat, [user], 'remove')
     delete data.count[user]
   } else {
+    await Sky.sendMessage(m.chat, { delete: { remoteJid: m.chat, fromMe: false, id: bang, participant: user }})
     await Sky.sendMessage(m.chat, {
-      text: `@${user.split('@')[0]} jangan tag sw! (${data.count[user]}/2)`,
+      text: `@${user.split('@')[0]} jangan tag sw! (${data.count[user]}/1)`,
       mentions: [user]
     })
   }
@@ -979,47 +983,159 @@ const metadata = m.isGroup ? await Sky.groupMetadata(m.chat).catch(e => {}) : (m
 //==============================================
 
 switch (command) {
-case 'play' : {
-if (!text) return m.reply(example("alone alan walker"));
- try {
-await Sky.sendMessage(m.chat, {react: {text: '🔎', key: m.key}})
-let search = await yts(`${text}`);
-if (!search || search.all.length === 0) return m.reply(`*Lagu tidak di temukan!*`)
-let { url, image, title, author, duration } = search.all[0];
-var anu = await ytdl.ytmp3(`${url}`)
-if (anu.status) {
-let urlMp3 = anu.download.url
-await Sky.sendMessage(m.chat, {audio: {url: urlMp3}, mimetype: "audio/mpeg", contextInfo: { externalAdReply: {thumbnailUrl: `${image}`, title: `${title}`, body: `Author ${author.name} || Duration ${duration.timestamp}`, sourceUrl: `${url}`, renderLargerThumbnail: true, mediaType: 1}}}, {quoted: m})
-} else {
-return m.reply("Error! Result Not Found")
-}
-await Sky.sendMessage(m.chat, {react: {text: '✅', key: m.key}})
-} catch (err) {
-console.error(err);
-m.reply(`*Terjadi kesalahan!* \n${err.message || err}`);
-}
+case 'play': {
+  if (!text) return m.reply(example("alone alan walker"))
+
+  try {
+    const axios = require('axios')
+    const yts = require('yt-search')
+
+    await Sky.sendMessage(m.chat, { react: { text: '🔎', key: m.key }})
+
+    const search = await yts(text)
+    if (!search.videos.length)
+      return m.reply('❌ Lagu ga ketemu')
+
+    const vid = search.videos[0]
+
+    // ===== SCRAPE =====
+    const headers = {
+      accept: "application/json",
+      "content-type": "application/json",
+      "user-agent": "Mozilla/5.0 (Android)",
+      referer: "https://ytmp3.gg/"
+    }
+
+    const payload = {
+      url: vid.url,
+      os: "android",
+      output: { type: "audio", format: "mp3" },
+      audio: { bitrate: "128k" }
+    }
+
+    const req = async (u) =>
+      axios.post(`https://${u}.ytconvert.org/api/download`, payload, { headers })
+
+    const { data } = await req("hub").catch(() => req("api"))
+
+    // polling
+    let result
+    while (true) {
+      const poll = await axios.get(data.statusUrl, { headers })
+      if (poll.data.status === "completed") {
+        result = poll.data
+        break
+      }
+      if (poll.data.status === "failed")
+        return m.reply('❌ Convert gagal')
+      await new Promise(r => setTimeout(r, 1500))
+    }
+
+    await Sky.sendMessage(m.chat, {
+      audio: { url: result.downloadUrl },
+      mimetype: "audio/mpeg",
+      contextInfo: {
+        externalAdReply: {
+          title: vid.title,
+          body: `${vid.author.name} • ${vid.timestamp}`,
+          thumbnailUrl: vid.thumbnail,
+          sourceUrl: vid.url,
+          renderLargerThumbnail: true,
+          mediaType: 1
+        }
+      }
+    }, { quoted: m })
+
+    await Sky.sendMessage(m.chat, { react: { text: '✅', key: m.key }})
+
+  } catch (e) {
+    console.error(e)
+    await Sky.sendMessage(m.chat, { react: { text: '❌', key: m.key }})
+    m.reply('❌ Gagal play audio')
+  }
 }
 break
-//================================================================================e "playvid": {
+//================================================================================
 
-case "playvid" : {
-if (!text) return m.reply(example("dj tiktok"))
-await Sky.sendMessage(m.chat, {react: {text: '🔎', key: m.key}})
-let ytsSearch = await yts(text)
-const res = await ytsSearch.all[0]
+case 'playvid': {
+  if (!text) return m.reply(example("dj tiktok"))
 
-var anu = await ytdl.ytmp4(`${res.url}`)
+  try {
+    const axios = require('axios')
+    const yts = require('yt-search')
 
-if (anu.status) {
-let urlMp3 = anu.download.url
-await Sky.sendMessage(m.chat, {video: {url: urlMp3}, ptv: true, mimetype: "video/mp4"}, {quoted: m})
-} else {
-return m.reply("Error! Result Not Found")
-}
-await Sky.sendMessage(m.chat, {react: {text: '✅', key: m.key}})
+    const [query, qReq] = text.split('|').map(v => v.trim())
+    const quality = qReq || null
+
+    await Sky.sendMessage(m.chat, { react: { text: '🔎', key: m.key }})
+
+    const search = await yts(query)
+    if (!search.videos.length)
+      return m.reply('❌ Video ga ketemu')
+
+    const vid = search.videos[0]
+
+    const availableQ = ["144p","240p","360p","480p","720p","1080p"]
+
+    if (!quality)
+      return m.reply(
+        `📺 *Resolusi tersedia:*\n${availableQ.join(", ")}\n\n` +
+        `💡 Contoh:\n.playvid ${query} | 720p`
+      )
+
+    if (!availableQ.includes(quality))
+      return m.reply(
+        `❌ Resolusi tidak valid\n\nTersedia: ${availableQ.join(", ")}`
+      )
+
+    await Sky.sendMessage(m.chat, { react: { text: '⚙️', key: m.key }})
+
+    const headers = {
+      accept: "application/json",
+      "content-type": "application/json",
+      "user-agent": "Mozilla/5.0 (Android)",
+      referer: "https://ytmp3.gg/"
+    }
+
+    const payload = {
+      url: vid.url,
+      os: "android",
+      output: { type: "video", format: "mp4", quality }
+    }
+
+    const req = async (u) =>
+      axios.post(`https://${u}.ytconvert.org/api/download`, payload, { headers })
+
+    const { data } = await req("hub").catch(() => req("api"))
+
+    let result
+    while (true) {
+      const poll = await axios.get(data.statusUrl, { headers })
+      if (poll.data.status === "completed") {
+        result = poll.data
+        break
+      }
+      if (poll.data.status === "failed")
+        return m.reply('❌ Convert gagal')
+      await new Promise(r => setTimeout(r, 1500))
+    }
+
+    await Sky.sendMessage(m.chat, {
+      video: { url: result.downloadUrl },
+      mimetype: "video/mp4",
+      caption: `🎥 ${vid.title}\nResolusi: ${quality}`,
+      ptv: true
+    }, { quoted: m })
+
+    await Sky.sendMessage(m.chat, { react: { text: '✅', key: m.key }})
+
+  } catch (e) {
+    console.error(e)
+    await Sky.sendMessage(m.chat, { react: { text: '❌', key: m.key }})
+    m.reply('❌ Gagal play video')
+  }
 }
 break
-
 
 //===============================================================================
 
@@ -1044,52 +1160,147 @@ break
 
 //===============================================================================
 
-case "ytmp3": {
+case 'ytmp3': {
+  if (!text) return m.reply(example("link youtube"))
 
-if (!text) return m.reply(example("linknya"))
+  try {
+    const axios = require('axios')
 
-if (!text.startsWith("https://")) return m.reply("Link Tautan Tidak Valid")
+    await Sky.sendMessage(m.chat, { react: { text: '🕖', key: m.key }})
 
-await Sky.sendMessage(m.chat, {react: {text: '🕖', key: m.key}})
+    // ambil metadata youtube
+    const { data: meta } = await axios.get(
+      'https://www.youtube.com/oembed',
+      { params: { url: text, format: 'json' } }
+    )
 
-var anu = await ytdl.ytmp3(`${text}`)
+    const headers = {
+      accept: "application/json",
+      "content-type": "application/json",
+      "user-agent": "Mozilla/5.0 (Android)",
+      referer: "https://ytmp3.gg/"
+    }
 
-if (anu.status) {
+    const payload = {
+      url: text,
+      os: "android",
+      output: { type: "audio", format: "mp3" },
+      audio: { bitrate: "128k" }
+    }
 
-let urlMp3 = anu.download.url
+    const req = async (u) =>
+      axios.post(`https://${u}.ytconvert.org/api/download`, payload, { headers })
 
-await Sky.sendMessage(m.chat, {audio: {url: urlMp3}, mimetype: "audio/mpeg"}, {quoted: m})
+    const { data } = await req("hub").catch(() => req("api"))
 
-} else {
+    let result
+    while (true) {
+      const poll = await axios.get(data.statusUrl, { headers })
+      if (poll.data.status === "completed") {
+        result = poll.data
+        break
+      }
+      if (poll.data.status === "failed")
+        return m.reply('❌ Convert gagal')
+      await new Promise(r => setTimeout(r, 1500))
+    }
 
-return m.reply("Error! Result Not Found")
+    await Sky.sendMessage(m.chat, {
+      audio: { url: result.downloadUrl },
+      mimetype: "audio/mpeg",
+      contextInfo: {
+        externalAdReply: {
+          title: meta.title,
+          body: meta.author_name,
+          thumbnailUrl: `https://i.ytimg.com/vi/${text.split('v=')[1]?.split('&')[0]}/hqdefault.jpg`,
+          sourceUrl: text,
+          renderLargerThumbnail: true,
+          mediaType: 1
+        }
+      }
+    }, { quoted: m })
 
+    await Sky.sendMessage(m.chat, { react: { text: '✅', key: m.key }})
+
+  } catch (e) {
+    console.error(e)
+    await Sky.sendMessage(m.chat, { react: { text: '❌', key: m.key }})
+    m.reply('❌ Gagal download audio')
+  }
 }
-
-await Sky.sendMessage(m.chat, {react: {text: '✅', key: m.key}})
-
-}
-
 break
 
 //================================================================================
 
-case "ytmp4": {
-if (!text) return m.reply(example("linknya"))
-if (!text.startsWith("https://")) return m.reply("Link Tautan Tidak Valid")
-await Sky.sendMessage(m.chat, {react: {text: '🕖', key: m.key}})
-var anu = await ytdl.ytmp4(`${text}`)
+case 'ytmp4': {
+  if (!text) return m.reply(example("link youtube | 720p"))
 
-if (anu.status) {
-let urlMp3 = anu.download.url
-await Sky.sendMessage(m.chat, {video: {url: urlMp3}, mimetype: "video/mp4"}, {quoted: m})
-} else {
-return m.reply("Error! Result Not Found")
-}
-await Sky.sendMessage(m.chat, {react: {text: '✅', key: m.key}})
+  try {
+    const axios = require('axios')
+    const [url, quality = "720p"] = text.split('|').map(v => v.trim())
+
+    await Sky.sendMessage(m.chat, { react: { text: '🕖', key: m.key }})
+
+    const { data: meta } = await axios.get(
+      'https://www.youtube.com/oembed',
+      { params: { url, format: 'json' } }
+    )
+
+    const headers = {
+      accept: "application/json",
+      "content-type": "application/json",
+      "user-agent": "Mozilla/5.0 (Android)",
+      referer: "https://ytmp3.gg/"
+    }
+
+    const payload = {
+      url,
+      os: "android",
+      output: { type: "video", format: "mp4", quality }
+    }
+
+    const req = async (u) =>
+      axios.post(`https://${u}.ytconvert.org/api/download`, payload, { headers })
+
+    const { data } = await req("hub").catch(() => req("api"))
+
+    let result
+    while (true) {
+      const poll = await axios.get(data.statusUrl, { headers })
+      if (poll.data.status === "completed") {
+        result = poll.data
+        break
+      }
+      if (poll.data.status === "failed")
+        return m.reply('❌ Convert gagal')
+      await new Promise(r => setTimeout(r, 1500))
+    }
+
+    await Sky.sendMessage(m.chat, {
+      video: { url: result.downloadUrl },
+      mimetype: "video/mp4",
+      caption: `🎥 ${meta.title}\n👤 ${meta.author_name}\n📺 ${quality}`,
+      contextInfo: {
+        externalAdReply: {
+          title: meta.title,
+          body: meta.author_name,
+          thumbnailUrl: meta.thumbnail_url,
+          sourceUrl: url,
+          renderLargerThumbnail: true,
+          mediaType: 2
+        }
+      }
+    }, { quoted: m })
+
+    await Sky.sendMessage(m.chat, { react: { text: '✅', key: m.key }})
+
+  } catch (e) {
+    console.error(e)
+    await Sky.sendMessage(m.chat, { react: { text: '❌', key: m.key }})
+    m.reply('❌ Gagal download video')
+  }
 }
 break
-
 //================================================================================
 
 case "mediafireeror": {
@@ -1486,12 +1697,69 @@ break
 //================================================================================
 
 case "brat2": {
-if (!text) return m.reply(example('teksnya'))
-await Sky.sendMessage(m.chat, {react: {text: '🕒', key: m.key}})
-let res = await getBuffer(`https://zenzxz.dpdns.org/maker/brat?text=${encodeURIComponent(text)}`)
-await Sky.sendAsSticker(m.chat, res, m, {packname: global.packname})
+  if (!text) return m.reply(example('teksnya'))
+  await Sky.sendMessage(m.chat, { react: { text: '🕒', key: m.key } })
+
+  const fs = require('fs')
+  const { exec } = require('child_process')
+  const Jimp = require('jimp')
+  const path = require('path')
+  const crypto = require('crypto')
+
+  const sampah = 'library/database/sampah'
+  if (!fs.existsSync(sampah)) fs.mkdirSync(sampah, { recursive: true })
+
+  const rand = crypto.randomBytes(6).toString('hex')
+  const input = path.join(sampah, `brat_raw_${rand}.png`)
+  const up = path.join(sampah, `brat_up_${rand}.png`)
+  const finalPng = path.join(sampah, `brat_final_${rand}.png`)
+  const out = path.join(sampah, `brat_${rand}.webp`)
+
+  try {
+    // 1️⃣ ambil gambar
+    let res = await getBuffer(`https://brat.siputzx.my.id/image?text=${encodeURIComponent(text)}`)
+    fs.writeFileSync(input, res)
+
+    // 2️⃣ upscale + sharpen
+    await new Promise((resolve, reject) => {
+      exec(
+        `ffmpeg -y -i "${input}" -vf "scale=iw*3:ih*3:flags=lanczos,unsharp=7:7:1.5" "${up}"`,
+        err => err ? reject(err) : resolve()
+      )
+    })
+
+    // 3️⃣ finishing jimp
+    const img = await Jimp.read(up)
+    await img
+      .contrast(0.3)
+      .brightness(0.04)
+      .resize(512, 512, Jimp.RESIZE_LANCZOS)
+      .writeAsync(finalPng)
+
+    // 4️⃣ convert ke webp HQ
+    await new Promise((resolve, reject) => {
+      exec(
+        `ffmpeg -y -i "${finalPng}" -vcodec libwebp -lossless 1 -quality 100 -preset picture "${out}"`,
+        err => err ? reject(err) : resolve()
+      )
+    })
+
+    await Sky.sendAsSticker(m.chat, fs.readFileSync(out), m, {
+      packname: global.packname
+    })
+
+  } catch (e) {
+    console.error(e)
+    m.reply('❌ gagal bikin stiker')
+  } finally {
+    // cleanup aman
+    for (let f of [input, up, finalPng, out]) {
+      if (fs.existsSync(f)) fs.unlinkSync(f)
+    }
+  }
+
+  await Sky.sendMessage(m.chat, { react: { text: '✅', key: m.key } })
 }
-await Sky.sendMessage(m.chat, {react: {text: '✅', key: m.key}})
 break
 
 
@@ -4880,28 +5148,236 @@ break
 
 //================================================================================
 
-case "ping": case "uptime": {
-let timestamp = speed();
-let latensi = speed() - timestamp;
-let tio = await nou.os.oos();
-var tot = await nou.drive.info();
-let respon = `
-*🔴 INFORMATION SERVER*
+case 'ping' :
+case 'uptime' :
+case 'os' :
+case 'upt' : {
+await Sky.sendMessage(m.chat, { react: { text: '⏸️', key: m.key }})
+try {
+  const fs = require("fs")
+  const path = require("path")
+  const os = require("os")
 
-*• Platform :* ${nou.os.type()}
-*• Total Ram :* ${formatp(os.totalmem())}
-*• Total Disk :* ${tot.totalGb} GB
-*• Total Cpu :* ${os.cpus().length} Core
-*• Runtime Vps :* ${runtime(os.uptime())}
+  const senderNumber = m.sender.split("@")[0]
+  const senderJid = m.sender
+  const senderLid = senderJid.endsWith("@lid")
+  ? senderJid
+  : null
+  const chatId = m.chat
+  const isGroup = m.isGroup
 
-*🔵 INFORMATION BOTZ*
+  const ownerNumber = Array.isArray(global.owner) ? global.owner : [global.owner]
+  const ownerTag = `@${ownerNumber[0]}`
+  const isOwner = ownerNumber.includes(senderNumber)
+  const isPrivateOwner = isOwner && !isGroup
 
-*• Respon Speed :* ${latensi.toFixed(4)} detik
-*• Runtime Bot :* ${runtime(process.uptime())}
+  const tagUser = `@${senderNumber}`
+
+  // ===== LATENCY =====
+  const t0 = speed()
+  const latency = speed() - t0
+
+  // ===== SYSTEM =====
+  const tot = await nou.drive.info()
+  const osInfo = nou.os.oos()
+  const cpu = os.cpus()
+  const load = os.loadavg()
+  const netIF = Object.keys(os.networkInterfaces()).length
+
+  // ===== MEMORY =====
+  const totalMem = os.totalmem()
+  const freeMem = os.freemem()
+  const usedMem = totalMem - freeMem
+  const ramPercent = ((usedMem / totalMem) * 100).toFixed(2)
+
+  // ===== PROCESS =====
+  const pmem = process.memoryUsage()
+  const pcpu = process.cpuUsage()
+
+  // ===== UPTIME =====
+  const botUp = runtime(process.uptime())
+  const vpsUp = runtime(os.uptime())
+
+  // ===== DATE & TIME =====
+  const date = new Date().toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric"
+  })
+  const timeWIB  = new Date().toLocaleTimeString("id-ID", { timeZone: "Asia/Jakarta" })
+  const timeWITA = new Date().toLocaleTimeString("id-ID", { timeZone: "Asia/Makassar" })
+  const timeWIT  = new Date().toLocaleTimeString("id-ID", { timeZone: "Asia/Jayapura" })
+
+  // ===== DISK =====
+  const diskPercent = ((tot.usedGb / tot.totalGb) * 100).toFixed(2)
+
+  // ===== CONTAINER =====
+  const isDocker = fs.existsSync("/.dockerenv") ? "Docker" : "Non-Docker"
+
+  // ===== BOT TYPE + COUNT =====
+  const pluginsPath = path.join(process.cwd(), "plugins")
+  const pluginCount = fs.existsSync(pluginsPath)
+    ? fs.readdirSync(pluginsPath).filter(v => v.endsWith(".js")).length
+    : 0
+
+  let caseCount = 0
+  try {
+    const mainFile = fs.readFileSync(__filename, "utf8")
+    caseCount = (mainFile.match(/case\s+['"`]/g) || []).length
+  } catch {}
+
+  const botTypeText = [
+    caseCount > 0 ? "Case" : null,
+    pluginCount > 0 ? "Plugins" : null
+  ].filter(Boolean).join(" + ") || "Unknown"
+
+  // ===== PACKAGE.JSON =====
+  let pkg = {}
+  try {
+    pkg = JSON.parse(fs.readFileSync(path.join(process.cwd(), "package.json")))
+  } catch {}
+
+  const deps = Object.keys(pkg.dependencies || {})
+  const devDeps = Object.keys(pkg.devDependencies || {})
+  const loadedModules = Object.keys(require.cache).length
+
+  // ===== NODE_MODULES SIZE =====
+  const getDirSize = dir => {
+    let size = 0
+    if (!fs.existsSync(dir)) return 0
+    for (const f of fs.readdirSync(dir)) {
+      const full = path.join(dir, f)
+      try {
+        const s = fs.statSync(full)
+        size += s.isDirectory() ? getDirSize(full) : s.size
+      } catch {}
+    }
+    return size
+  }
+
+  const nodeModulesSize = fs.existsSync("node_modules")
+    ? formatp(getDirSize("node_modules"))
+    : "N/A"
+
+  // ===== BAILEYS =====
+  let baileysName = "Unknown"
+  let baileysVersion = "Unknown"
+  try {
+    const key = Object.keys(pkg.dependencies || {}).find(v =>
+      v.toLowerCase().includes("baileys")
+    )
+    if (key) {
+      baileysName = key
+      baileysVersion = pkg.dependencies[key]
+    } else {
+      const b = require("@whiskeysockets/baileys")
+      baileysName = "Baileys (Runtime)"
+      baileysVersion = b.version || "Git / Custom"
+    }
+  } catch {
+    baileysName = "Baileys (Custom Build)"
+    baileysVersion = "Git / Fork"
+  }
+
+  // ===== RESPONSE =====
+  const respon = `
+╭───────────〔 🤖 ${global.botname2} 〕───────────╮
+│ SYSTEM SUMMARY
+│ • OS        : ${os.platform()} (${os.arch()})
+│ • Kernel    : ${os.release()}
+│ • Hostname  : ${isPrivateOwner ? os.hostname() : "Hidden"}
+│ • Docker    : ${isDocker}
+│ • Net IF    : ${netIF}
+│ • VPS Up    : ${vpsUp}
+│ • CPU       : ${cpu[0].model} (${cpu.length} Core)
+│ • Load Avg  : ${load[0]} | ${load[1]} | ${load[2]}
+│ • RAM       : ${formatp(usedMem)} / ${formatp(totalMem)} (${ramPercent}%)
+│ • Disk      : ${tot.usedGb}/${tot.totalGb} GB (${diskPercent}%)
+│ • Node.js   : ${process.version}
+│ • Baileys   : ${baileysVersion}
+│ • Response  : ${latency.toFixed(4)} ms
+├──────────────────────────────────
+│ USER INFO
+│ • Nama      : ${tagUser}
+│ • Nomor     : ${senderNumber}
+│ • User ID   : ${senderJid}
+│ • User LID   : ${senderLid}
+│ • Status    : ONLINE
+│ • Chat Type : ${isGroup ? "GROUP" : "PRIVATE"}
+├──────────────────────────────────
+│ GROUP INFO
+│ • Group ID  : ${isGroup ? chatId : "-"}
+│ • Context   : ${isGroup ? "Grup" : "Private Chat"}
+├──────────────────────────────────
+│ TIME INFO
+│ • Tanggal   : ${date}
+│ • WIB       : ${timeWIB}
+│ • WITA      : ${timeWITA}
+│ • WIT       : ${timeWIT}
+├──────────────────────────────────
+│ BOT DETAIL
+│ • Nama Bot  : ${global.botname2}
+│ • Versi    : ${global.versi || "unknown"}
+│ • Mode     : ${global.public ? "PUBLIC" : "SELF"}
+│ • Type     : ${botTypeText}
+│ • Prefix   : ${prefix || "-"}
+│ • Case Cmd : ${caseCount}
+│ • Plugin   : ${pluginCount}
+│ • Runtime  : ${botUp}
+│ • VPS Up   : ${vpsUp}
+├──────────────────────────────────
+│ OWNER INFO
+│ • Creator  : ${ownerTag}
+│ • Number   : ${ownerNumber[0]}
+├──────────────────────────────────
+│ MODULE & LIBRARY
+│ • Baileys  : ${baileysName}
+│ • Version  : ${baileysVersion}
+│ • Deps     : ${deps.length}
+│ • DevDeps  : ${devDeps.length}
+│ • Loaded   : ${loadedModules}
+│ • Size     : ${nodeModulesSize}
+├──────────────────────────────────
+${isPrivateOwner ? `
+│ PROCESS (OWNER)
+│ • PID      : ${process.pid}
+│ • Exec     : ${process.execPath}
+│ • ENV      : ${process.env.NODE_ENV || "undefined"}
+│ • RSS      : ${formatp(pmem.rss)}
+│ • Heap     : ${formatp(pmem.heapUsed)} / ${formatp(pmem.heapTotal)}
+│ • CPU      : ${(pcpu.user / 1e6).toFixed(2)}s | ${(pcpu.system / 1e6).toFixed(2)}s
+` : `
+│ PROCESS
+│ • Detail   : Hidden
+`}
+│ NETWORK
+${isPrivateOwner
+  ? `│ • IPv4     : ${osInfo.ipv4 || "Hidden"}
+│ • IPv6     : ${osInfo.ipv6 || "Hidden"}`
+  : `│ • IP       : Hidden`}
+├──────────────────────────────────
+│ ✨ BOT READY
+│ ➜ Ketik *.menu*
+╰──────────────────────────────────╯
 `
-await m.reply(respon)
-}
-break
+await Sky.sendMessage(m.chat, { react: { text: '🟢', key: m.key }})
+  await Sky.sendMessage(
+  m.chat,
+  {
+    text: respon,
+    mentions: [
+      senderJid,
+      `${ownerNumber[0]}@s.whatsapp.net`
+    ]
+  },
+  { quoted: m }
+)
+  } catch (e) {
+  console.log(e)
+  Reply(`Gagal mengambil info 'Cause: ${e}`)
+  }
+  }
+  break
 
 //================================================================================
 
@@ -7101,7 +7577,7 @@ case 'getpaste' : case 'gp': {
   
   const text = await getPastebinContent(url);
   if (text) {
-    await m.reply(`📄 *Isi Pastebin:*\n\n${text}`);
+    await m.reply(`?? *Isi Pastebin:*\n\n${text}`);
   } else {
     await m.reply('❌ Gagal mengambil isi dari Pastebin.');
   }
@@ -16671,7 +17147,357 @@ async function webpToMp4ImageMagick(inputPath, outputPath, options = {}) {
   }
 }
 break;
-    
+
+//=======================================================
+
+case 'sendchannel': {
+  const fs = require('fs')
+  const path = require('path')
+  const ffmpeg = require('fluent-ffmpeg')
+
+  const qmsg = m.quoted
+
+  // 🔥 HELPER DETEKSI AUDIO (FINAL)
+  function isAudioQuoted(msg) {
+    if (!msg) return false
+
+    const m = msg.message || msg.msg || {}
+
+    if (m.audioMessage) return true
+    if (m.voiceMessage) return true
+
+    if (m.documentMessage) {
+      const mime = m.documentMessage.mimetype || ''
+      const name = m.documentMessage.fileName || ''
+      if (mime.startsWith('audio/')) return true
+      if (/\.(mp3|ogg|wav|m4a|opus)$/i.test(name)) return true
+    }
+
+    return false
+  }
+
+  if (!qmsg) {
+    return m.reply(
+      'Reply audio banh\n\n' +
+      'Usage:\n' +
+      '.sendchannel <id / link channel> <kualitas>\n\n' +
+      'Kualitas:\n' +
+      '- jelek (64k)\n' +
+      '- sedang (128k)\n' +
+      '- superhigh (256k)'
+    )
+  }
+
+  if (!text) {
+    return m.reply(
+      'Masukin ID atau link channel banh\n\n' +
+      'Contoh:\n' +
+      '.sendchannel 120363xxxx@newsletter\n' +
+      '.sendchannel https://whatsapp.com/channel/xxxx sedang'
+    )
+  }
+
+  if (!isAudioQuoted(qmsg)) {
+    return m.reply('Reply audio / VN / file audio (mp3, ogg, m4a)')
+  }
+
+  // =========================
+  // PARSE INPUT
+  // =========================
+  const parts = text.trim().split(/\s+/)
+  let channelInput = parts[0]
+  const quality = (parts[1] || 'sedang').toLowerCase()
+
+  let channelId = channelInput
+
+  // 🔥 RESOLVE LINK → ID ASLI
+  if (channelInput.includes('https://whatsapp.com/channel/')) {
+    const invite = channelInput.split('https://whatsapp.com/channel/')[1]
+    if (!invite) return m.reply('Link channel ga valid')
+
+    let meta
+    try {
+      meta = await Sky.newsletterMetadata('invite', invite)
+    } catch {
+      return m.reply('Gagal ambil data channel')
+    }
+
+    channelId = meta.id
+  }
+
+  // VALIDASI ID CHANNEL
+  if (!/^120\d+@newsletter$/.test(channelId)) {
+    return m.reply(
+      'ID channel tidak valid ❌\n\n' +
+      'Gunakan:\n' +
+      '- ID channel asli (120363xxxx@newsletter)\n' +
+      '- atau link channel WhatsApp'
+    )
+  }
+
+  // =========================
+  // MAPPING KUALITAS
+  // =========================
+  let bitrate
+  if (quality === 'jelek') bitrate = '64k'
+  else if (quality === 'superhigh') bitrate = '256k'
+  else bitrate = '128k'
+
+  // =========================
+  // DOWNLOAD AUDIO
+  // =========================
+  const buffer = await qmsg.download()
+
+  const inFile = path.join(__dirname, `in_${Date.now()}`)
+  const outFile = path.join(__dirname, `out_${Date.now()}.ogg`)
+  fs.writeFileSync(inFile, buffer)
+
+  // =========================
+  // CONVERT → VN (OGG OPUS)
+  // =========================
+  try {
+    await new Promise((resolve, reject) => {
+      ffmpeg(inFile)
+        .audioCodec('libopus')
+        .audioChannels(1)
+        .audioFrequency(48000)
+        .audioBitrate(bitrate)
+        .format('ogg')
+        .on('end', resolve)
+        .on('error', reject)
+        .save(outFile)
+    })
+  } catch {
+    fs.unlinkSync(inFile)
+    return m.reply('Gagal convert audio')
+  }
+
+  const vnBuffer = fs.readFileSync(outFile)
+
+  // =========================
+  // KIRIM KE CHANNEL (REAL ID)
+  // =========================
+  try {
+    await Sky.sendMessage(channelId, {
+      audio: vnBuffer,
+      mimetype: 'audio/ogg; codecs=opus',
+      ptt: true
+    })
+  } catch {
+    fs.unlinkSync(inFile)
+    fs.unlinkSync(outFile)
+    return m.reply(
+      'Gagal kirim ke channel\n' +
+      '- Bot bukan admin\n' +
+      '- Bot belum join\n' +
+      '- Atau channel dibatasi'
+    )
+  }
+
+  fs.unlinkSync(inFile)
+  fs.unlinkSync(outFile)
+
+  m.reply(
+    'Done VN terkirim ✅\n\n' +
+    `Channel: ${channelId}\n` +
+    `Kualitas: ${quality} (${bitrate})`
+  )
+}
+break
+
+//=======================================================
+case 'playch': {
+ if (!isOwner) return Reply(mess.owner)
+
+  if (!text) return m.reply(
+`🎧 PLAYCH GUIDE
+
+.playch judul|channel|kualitas
+
+Contoh:
+.playch lily alan walker|12036xxx@newsletter
+.playch monokrom|linkchannel|superhigh
+
+Kualitas:
+• jelek = 64k
+• sedang = 128k (default)
+• superhigh = 256k`
+  )
+
+  try {
+    const fs = require('fs')
+    const path = require('path')
+    const ffmpeg = require('fluent-ffmpeg')
+    const axios = require('axios')
+    const yts = require('yt-search')
+
+    const react = async (emo) => {
+      await Sky.sendMessage(m.chat, { 
+        react: { text: emo, key: m.key }
+      })
+      await new Promise(r => setTimeout(r, 1000))
+    }
+
+    await react('🕒')
+
+    let [query, channelInput, quality] = text.split('|')
+
+    if (!query || !channelInput) {
+      await react('❌')
+      return m.reply(`❌ Format salah\n\n.playch judul|channel|kualitas`)
+    }
+
+    quality = (quality || 'sedang').toLowerCase()
+
+    await react('🌐')
+
+    let channelId = channelInput.trim()
+
+    if (channelId.includes('https://whatsapp.com/channel/')) {
+      try {
+        const invite = channelId.split('https://whatsapp.com/channel/')[1]
+        let meta = await Sky.newsletterMetadata('invite', invite)
+        channelId = meta.id
+      } catch {
+        await react('❌')
+        return m.reply('❌ Gagal resolve link channel')
+      }
+    }
+
+    if (!/^120\d+@newsletter$/.test(channelId)) {
+      await react('❌')
+      return m.reply('❌ ID channel tidak valid')
+    }
+
+    let bitrate =
+      quality === 'jelek' ? '64k' :
+      quality === 'superhigh' ? '256k' : '128k'
+
+    await react('🔎')
+
+    const search = await yts(query)
+
+    if (!search.videos.length) {
+      await react('❔')
+      return m.reply('❌ Lagu tidak di temukan')
+    }
+
+    const vid = search.videos[0]
+
+    await react('🌐')
+
+    const headers = {
+      accept: "application/json",
+      "content-type": "application/json",
+      "user-agent": "Mozilla/5.0",
+      referer: "https://ytmp3.gg/"
+    }
+
+    const payload = {
+      url: vid.url,
+      os: "android",
+      output: { type: "audio", format: "mp3" },
+      audio: { bitrate: "128k" }
+    }
+
+    const req = async (u) =>
+      axios.post(`https://${u}.ytconvert.org/api/download`, payload, { headers })
+
+    const { data } = await req("hub").catch(() => req("api"))
+
+    let result
+
+    while (true) {
+      const poll = await axios.get(data.statusUrl, { headers })
+
+      if (poll.data.status === "completed") {
+        result = poll.data
+        break
+      }
+
+      if (poll.data.status === "failed") {
+        await react('❌')
+        return m.reply('❌ Convert gagal')
+      }
+
+      await new Promise(r => setTimeout(r, 1500))
+    }
+
+    await react('⬇️')
+
+    const audioRes = await axios.get(result.downloadUrl, {
+      responseType: 'arraybuffer'
+    })
+
+    const inFile = path.join(__dirname, `in_${Date.now()}`)
+    const outFile = path.join(__dirname, `out_${Date.now()}.ogg`)
+
+    fs.writeFileSync(inFile, audioRes.data)
+
+    await react('🎧')
+
+    await new Promise((resolve, reject) => {
+      ffmpeg(inFile)
+        .audioCodec('libopus')
+        .audioChannels(1)
+        .audioFrequency(48000)
+        .audioBitrate(bitrate)
+        .format('ogg')
+        .on('end', resolve)
+        .on('error', reject)
+        .save(outFile)
+    })
+
+    const vnBuffer = fs.readFileSync(outFile)
+
+    await react('📤')
+
+    await Sky.sendMessage(channelId, {
+      audio: vnBuffer,
+      mimetype: 'audio/ogg; codecs=opus',
+      ptt: true,
+      contextInfo: {
+        externalAdReply: {
+          title: vid.title,
+          body: `${vid.author.name} • ${vid.timestamp}`,
+          thumbnailUrl: vid.thumbnail,
+          sourceUrl: vid.url,
+          mediaType: 1,
+          renderLargerThumbnail: true
+        }
+      }
+    })
+
+    try {
+      fs.unlinkSync(inFile)
+      fs.unlinkSync(outFile)
+    } catch {}
+
+    await react('✅')
+
+    return m.reply(
+`✅ *PLAYCH SUKSES*
+
+🎵 Judul : ${vid.title}
+👤 Artist : ${vid.author.name}
+⏱ Durasi : ${vid.timestamp}
+⚙️ Kualitas : ${quality} (${bitrate})
+
+📢 Link Channel:
+${channelInput}
+
+🆔 ID Channel:
+${channelId}`
+    )
+
+  } catch (e) {
+    console.log(e)
+    await Sky.sendMessage(m.chat, { react: { text: '❌', key: m.key }})
+    return m.reply('❌ Gagal playch')
+  }
+}
+break
+
 //=======================[ Akhir Case ]===============================
 
 default:
