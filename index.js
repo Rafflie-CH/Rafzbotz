@@ -77,7 +77,6 @@ const { isUrl, generateMessageTag, getBuffer, getSizeMedia, fetchJson, await, sl
 //================================================================================
 
 async function startingBot() {
-    const WHATSAPP_VERSION = [ 2, 3000, 1027934701]
     const store = await makeInMemoryStore({ logger: pino().child({ level: 'silent', stream: 'store' }) })
 	const { state, saveCreds } = await useMultiFileAuthState('session');
 	const { version, isLatest } = await fetchLatestWaWebVersion()
@@ -88,7 +87,7 @@ async function startingBot() {
         auth: state,
         browser: ["Ubuntu","Chrome","22.04.2"],
         generateHighQualityLinkPreview: true,     
-        version : WHATSAPP_VERSION,
+        version,
     	getMessage: async (key) => {
          if (store) {
            const msg = await store.loadMessage(key.remoteJid, key.id, undefined)
