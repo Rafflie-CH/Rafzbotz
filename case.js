@@ -17498,6 +17498,314 @@ ${channelId}`
 }
 break
 
+//=======================================================
+
+case 'deposit':
+case 'depo':
+case 'pakasir': {
+    const { createCanvas } = require('canvas')
+
+    try {
+        if (!text) return m.reply(`*Contoh: ${prefix + command} 15000*`)
+        
+        await Sky.sendMessage(m.chat, { react: { text: "⏳", key: m.key } })
+
+        let amount = parseInt(text)
+        if (isNaN(amount) || amount < 1000) return m.reply(`*Nominal tidak valid.* Minimal 1000.`)
+
+        let project = global.slug ? global.slug.trim() : ""
+        let api_key = global.apikeyPakasir ? global.apikeyPakasir.trim() : ""
+        let pfx = global.paymentPrefix || 'TRX'
+        let expireSetting = global.paymentExpire || 5
+
+        if (!project || !api_key) return m.reply('*🍂 Konfigurasi API belum lengkap di settings.js*')
+
+        let now = new Date()
+        let hari = now.toLocaleDateString('id-ID', { weekday: 'long' })
+        let tanggal = now.toLocaleDateString('id-ID')
+        let waktu = now.toLocaleTimeString('id-ID')
+        let uniq = Date.now().toString().slice(-5)
+        let pengirim = m.sender.split('@')[0]
+        let order_id = `${pfx}${uniq}${pengirim.slice(-3)}`
+
+        let createResRaw = await fetch("https://app.pakasir.com/api/transactioncreate/qris", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ project, api_key, order_id, amount })
+        })
+
+        let createRes = await createResRaw.json()
+        let payment = createRes.payment || createRes
+
+        if (!payment || (!payment.payment_number && !createRes.code)) {
+            return m.reply(`*🍂 Gagal membuat transaksi.*\n\n*Pesan Server:* ${createRes.message || 'Api Key / Slug salah'}`)
+        }
+
+        let payCode = createRes.code || payment.code || ""
+        let qrisString = payment.payment_number || createRes.qris_string || ""
+        let feeAdmin = createRes.fee || payment.fee || 0
+        let totalTagihan = amount + feeAdmin
+
+        let qrBuffer
+        if (payCode) {
+            let qrUrl = `https://app.pakasir.com/qris/${payCode}.png`
+            let r = await fetch(qrUrl)
+            if (r.ok) qrBuffer = await r.arrayBuffer()
+        } else if (qrisString) {
+            let qcUrl = `https://quickchart.io/qr?text=${encodeURIComponent(qrisString)}&size=500&format=png`
+            let r = await fetch(qcUrl)
+            if (r.ok) qrBuffer = await r.arrayBuffer()
+        }
+
+        if (!qrBuffer) return m.reply("*🍂 Gagal memproses gambar QRIS.*")
+
+        let invoiceText = `*INVOICE DEPOSIT*\n─────────────────\n📝 *Order ID:* ${order_id}\n💰 *Nominal:* Rp ${amount.toLocaleString()}\n➕ *Admin:* Rp ${feeAdmin.toLocaleString()}\n💳 *Total Bayar:* Rp ${totalTagihan.toLocaleString()}\n🏦 *Metode:* QRIS ALL PAYMENT\n⏳ *Status:* ⏳ Menunggu Pembayaran\n─────────────────\n\nSilahkan scan QRIS di atas untuk membayar sesuai nominal total.`
+
+        let buttons = [
+            { buttonId: `${prefix}bataldepo ${order_id}`, buttonText: { displayText: '❌ Batalkan Transaksi' }, type: 1 }
+        ]
+
+        let invoiceMsg = await Sky.sendMessage(m.chat, {
+            image: Buffer.from(qrBuffer),
+            caption: invoiceText,
+            footer: `Expired dalam ${expireSetting} Menit`,
+            buttons: buttons,
+            headerType: 4
+        }, { quoted: m })
+
+        global.activeDepo = global.activeDepo || {}
+        global.activeDepo[m.sender] = { order_id, key: invoiceMsg.key }
+
+        let attempts = 0
+        let maxAttempts = (expireSetting * 60) / 5
+        let lastStatus = ""
+
+        while (attempts < maxAttempts) { 
+            await new Promise(r => setTimeout(r, 5000))
+
+            if (!global.activeDepo[m.sender] || global.activeDepo[m.sender].order_id !== order_id) {
+                return
+            }
+
+            let detailUrl = `https://app.pakasir.com/api/transactiondetail?project=${encodeURIComponent(project)}&amount=${encodeURIComponent(amount)}&order_id=${encodeURIComponent(order_id)}&api_key=${encodeURIComponent(api_key)}`
+            let detRaw = await fetch(detailUrl)
+            let det = await detRaw.json()
+            let tx = det.transaction || det || {}
+            let status = (tx.status || "").toString().toUpperCase()
+
+            if (status && status !== lastStatus) {
+                lastStatus = status
+
+                if (status.includes("SUCCESS") || status.includes("COMPLETED") || status.includes("BERHASIL")) {
+                    global.db.data.users[m.sender].balance += amount
+                    delete global.activeDepo[m.sender]
+                    await Sky.sendMessage(m.chat, { delete: invoiceMsg.key })
+
+                    let canvasWidth = 450
+                    let canvasHeight = 700
+                    let canvas = createCanvas(canvasWidth, canvasHeight)
+                    let ctx = canvas.getContext('2d')
+                    
+                    ctx.fillStyle = "#ffffff"
+                    ctx.fillRect(0, 0, canvas.width, canvas.height)
+                    ctx.fillStyle = "#000000"
+                    ctx.font = "bold 28px monospace"
+                    ctx.textAlign = "center"
+                    ctx.fillText((global.namaStore || "RAFZ STORE").toUpperCase(), canvasWidth / 2, 60)
+                    ctx.font = "16px monospace"
+                    ctx.fillText(`${global.alamat || "Digital Service"}`, canvasWidth / 2, 90)
+                    ctx.textAlign = "left"
+                    ctx.fillText("------------------------------------------", 20, 140)
+                    ctx.fillText(`${tanggal} ${waktu}`, 20, 165)
+                    ctx.fillText(`KASIR : ${(global.namaOwner || "Admin").toUpperCase()}`, 20, 185)
+                    ctx.fillText(`ORDER : ${order_id}`, 20, 205)
+                    ctx.fillText("------------------------------------------", 20, 230)
+                    ctx.font = "bold 18px monospace"
+                    ctx.fillText("TOPUP SALDO OTOMATIS", 20, 270)
+                    ctx.font = "18px monospace"
+                    ctx.textAlign = "right"
+                    ctx.fillText(`1 x ${amount.toLocaleString()}`, canvasWidth - 20, 300)
+                    ctx.fillText(`Rp ${amount.toLocaleString()}`, canvasWidth - 20, 325)
+                    ctx.textAlign = "left"
+                    ctx.fillText("------------------------------------------", 20, 360)
+                    ctx.font = "bold 20px monospace"
+                    ctx.fillText("TOTAL BELANJA", 20, 400)
+                    ctx.textAlign = "right"
+                    ctx.fillText(`Rp ${amount.toLocaleString()}`, canvasWidth - 20, 400)
+                    ctx.font = "18px monospace"
+                    ctx.textAlign = "left"
+                    ctx.fillText("TUNAI / QRIS", 20, 440)
+                    ctx.textAlign = "right"
+                    ctx.fillText(`Rp ${amount.toLocaleString()}`, canvasWidth - 20, 440)
+                    ctx.textAlign = "left"
+                    ctx.fillText("KEMBALI", 20, 470)
+                    ctx.textAlign = "right"
+                    ctx.fillText("Rp 0", canvasWidth - 20, 470)
+                    ctx.textAlign = "left"
+                    ctx.fillText("------------------------------------------", 20, 500)
+                    ctx.textAlign = "center"
+                    ctx.font = "italic 16px monospace"
+                    ctx.fillText("TERIMA KASIH TELAH BERBELANJA", canvasWidth / 2, 550)
+                    ctx.fillText("SIMPAN STRUK INI SEBAGAI BUKTI", canvasWidth / 2, 575)
+                    ctx.font = "bold 18px monospace"
+                    ctx.fillText("--- LAYANAN KONSUMEN ---", canvasWidth / 2, 620)
+                    ctx.font = "16px monospace"
+                    ctx.fillText(`WA: ${m.sender.split('@')[0]}`, canvasWidth / 2, 645)
+
+                    let buffer = canvas.toBuffer("image/png")
+                    let targetChat = m.isGroup ? m.sender : m.chat
+                    
+                    await Sky.sendMessage(targetChat, { 
+                        image: buffer, 
+                        caption: `✅ *DEPOSIT BERHASIL*\n\nSaldo otomatis bertambah ke akun Anda.`,
+                        contextInfo: {
+                            externalAdReply: {
+                                title: `Struk Digital Berhasil`,
+                                body: global.namaStore || "Rafz Store",
+                                thumbnailUrl: global.image.reply,
+                                sourceUrl: global.linkSaluran,
+                                mediaType: 1,
+                                renderLargerThumbnail: true
+                            }
+                        }
+                    })
+
+                    if (m.isGroup) await m.reply("✅ *Selesai!* Struk telah dikirim ke chat pribadi kamu.")
+                    return
+                }
+
+                if (status.includes("FAILED") || status.includes("EXPIRED") || status.includes("GAGAL")) {
+                    delete global.activeDepo[m.sender]
+                    await Sky.sendMessage(m.chat, { delete: invoiceMsg.key })
+                    return m.reply(`❌ *TRANSAKSI GAGAL*\nID: *${order_id}*`)
+                }
+            }
+            attempts++
+        }
+
+        delete global.activeDepo[m.sender]
+        await Sky.sendMessage(m.chat, { delete: invoiceMsg.key })
+        await m.reply(`⚠️ *WAKTU HABIS*\nTransaksi *${order_id}* dibatalkan.`)
+
+    } catch (e) {
+        console.log(e)
+        await m.reply("*🍂 Terjadi kesalahan pada sistem.*")
+    } finally {
+        await Sky.sendMessage(m.chat, { react: { text: "", key: m.key } })
+    }
+}
+break
+
+case 'bataldepo': {
+    if (!global.activeDepo || !global.activeDepo[m.sender]) return m.reply('Tidak ada transaksi aktif.')
+    let { key, order_id } = global.activeDepo[m.sender]
+    await Sky.sendMessage(m.chat, { delete: key })
+    delete global.activeDepo[m.sender]
+    await m.reply(`✅ Transaksi *${order_id}* berhasil dibatalkan.`)
+}
+break
+
+		
+//=======================================================
+
+    case 'cekkartu':
+    case 'cekxl':
+    case 'cekaxis':
+    case 'cektri':
+    case 'tricheck': {
+        try {
+            if (!text) return m.reply(`Contoh: ${prefix + command} 08xxxx\n📌 Support: XL, AXIS, THREE`);
+
+            await Sky.sendMessage(m.chat, { react: { text: '⏳', key: m.key } });
+
+            let number = text.replace(/\D/g, '');
+            if (number.startsWith('08')) number = '62' + number.slice(1);
+            if (!/^62\d{8,15}$/.test(number)) return m.reply(`🍂 *Format nomor tidak valid!*`);
+
+            if (/^(62817|62818|62819|62877|62878|62831|62832|62833|62838)/.test(number)) {
+                const res = await fetch(`https://bendith.my.id/end.php?check=package&number=${number}&version=2`, {
+                    headers: { 'User-Agent': 'Mozilla/5.0 (Linux; Android 10)' }
+                });
+                
+                if (!res.ok) throw new Error('API XL/Axis Down');
+                const data = await res.json();
+                
+                if (!data?.success || !data?.data?.subs_info) {
+                    return m.reply(`🍂 *Nomor tidak aktif atau bukan XL/AXIS.*`);
+                }
+
+                const subs = data.data.subs_info;
+                const pack = data.data.package_info || {};
+                const volte = subs.volte || {};
+                const packages = pack.packages || [];
+
+                let teks = `📱 *CEK NOMOR XL / AXIS*\n\n`;
+                teks += `🔢 *Nomor:* ${subs.msisdn || '-'}\n`;
+                teks += `🏷️ *Operator:* ${subs.operator || '-'}\n`;
+                teks += `🪪 *NIK:* ${subs.id_verified || '-'}\n`;
+                teks += `📶 *Jaringan:* ${subs.net_type || '-'}\n`;
+                teks += `⏳ *Masa Aktif:* ${subs.exp_date || '-'}\n`;
+                teks += `📆 *Masa Tenggang:* ${subs.grace_until || '-'}\n\n`;
+                teks += `📡 *Status VoLTE:*\n`;
+                teks += `   • Device: ${volte.device ? '✅' : '❌'}\n`;
+                teks += `   • Area: ${volte.area ? '✅' : '❌'}\n\n`;
+
+                if (packages.length === 0) {
+                    teks += `📦 *Paket Aktif:* Tidak ada.`;
+                } else {
+                    teks += `📦 *Paket Aktif:*\n`;
+                    packages.forEach((p, i) => {
+                        teks += `${i + 1}. *${p.name || 'Paket'}*\n   📅 Exp: ${p.exp_date || '-'}\n   📊 Kuota: ${p.quota || '-'}\n`;
+                    });
+                }
+                await m.reply(teks.trim());
+
+            } else if (/^(62895|62896|62897|62898|62899)/.test(number)) {
+                const response = await fetch("https://tri.co.id/api/v1/information/sim-status", {
+                    method: "POST",
+                    headers: { 
+                        "Content-Type": "application/json",
+                        "User-Agent": "Mozilla/5.0",
+                        "Origin": "https://tri.co.id"
+                    },
+                    body: JSON.stringify({ action: "MSISDN_STATUS_WEB", language: "ID", msisdn: number })
+                });
+
+                if (!response.ok) throw new Error('API Three Down');
+                const result = await response.json();
+                
+                if (!result?.status || result.data?.responseCode !== "00000") {
+                    return m.reply(`*Nomor tidak valid atau bukan SIM TRI.*`);
+                }
+
+                const d = result.data;
+                const remaining = d.actEndDate ? Math.max(0, Math.ceil((new Date(d.actEndDate) - new Date()) / 86400000)) : '-';
+
+                let caption = `📡 *INFORMASI SIM TRI*\n\n`;
+                caption += `📱 Nomor: ${d.msisdn || '-'}\n`;
+                caption += `✅ Kartu: ${d.cardStatus || '-'}\n`;
+                caption += `📝 Registrasi: ${d.activationStatus || '-'}\n`;
+                caption += `🟢 Aktivasi: ${d.activationDate || '-'}\n`;
+                caption += `🔴 Berakhir: ${d.actEndDate || '-'}\n`;
+                caption += `⏱️ Sisa: ${remaining} hari\n`;
+                caption += `📦 Produk: ${d.prodDesc || '-'}\n\n`;
+                caption += `🕐 ${new Date().toLocaleString('id-ID')}`;
+                await m.reply(caption.trim());
+
+            } else {
+                return m.reply(`🍂 *Nomor tidak didukung!* Hanya XL, AXIS, dan THREE.`);
+            }
+
+        } catch (e) {
+            console.error(e);
+            await m.reply(`🍂 *Terjadi kesalahan sistem!*`);
+        } finally {
+            await Sky.sendMessage(m.chat, { react: { text: '', key: m.key } });
+        }
+    }
+    break
+
+
 //=======================[ Akhir Case ]===============================
 
 default:
