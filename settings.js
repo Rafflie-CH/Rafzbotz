@@ -72,7 +72,7 @@ logo: "https://img101.pixhost.to/images/77/546441106_skyzopedia.jpg",
 dana: "https://img100.pixhost.to/images/667/540082364_skyzopedia.jpg", 
 ovo: "https://img100.pixhost.to/images/667/540082774_skyzopedia.jpg", 
 gopay: "https://img100.pixhost.to/images/667/540083275_skyzopedia.jpg", 
-qris: "https://img100.pixhost.to/images/667/540080636_skyzopedia.jpg"
+qris: "https://img2.pixhost.to/images/7405/717953643_rafzbot.jpg"
 }
 
 // Settings Api Panel Pterodactyl

@@ -26,7 +26,7 @@ const util = require('util');
 const jimp = require('jimp');
 const axios = require('axios');
 const chalk = require('chalk');
-const yts = require('yt-search');
+const yts = require('youtube-yts');
 const ytdl = require('@vreden/youtube_scraper');
 const speed = require('performance-now');
 const moment = require("moment-timezone");
@@ -987,8 +987,6 @@ case 'play': {
   if (!text) return m.reply(example("alone alan walker"))
 
   try {
-    const axios = require('axios')
-    const yts = require('yt-search')
 
     await Sky.sendMessage(m.chat, { react: { text: '🔎', key: m.key }})
 
@@ -1061,8 +1059,6 @@ case 'playvid': {
   if (!text) return m.reply(example("dj tiktok"))
 
   try {
-    const axios = require('axios')
-    const yts = require('yt-search')
 
     const [query, qReq] = text.split('|').map(v => v.trim())
     const quality = qReq || null
@@ -1164,7 +1160,6 @@ case 'ytmp3': {
   if (!text) return m.reply(example("link youtube"))
 
   try {
-    const axios = require('axios')
 
     await Sky.sendMessage(m.chat, { react: { text: '🕖', key: m.key }})
 
@@ -1236,7 +1231,6 @@ case 'ytmp4': {
   if (!text) return m.reply(example("link youtube | 720p"))
 
   try {
-    const axios = require('axios')
     const [url, quality = "720p"] = text.split('|').map(v => v.trim())
 
     await Sky.sendMessage(m.chat, { react: { text: '🕖', key: m.key }})
@@ -1944,15 +1938,111 @@ break
 
 //================================================================================
 
-case "tohd": case "hd": {
-if (!/image/.test(mime)) return m.reply(example("dengan kirim/reply foto"))
-await Sky.sendMessage(m.chat, {react: {text: '🕒', key: m.key}})
-let foto = await Sky.downloadAndSaveMediaMessage(qmsg)
-let result = await remini(await fs.readFileSync(foto), "enhance")
-await Sky.sendMessage(m.chat, {image: result}, {quoted: m})
-await fs.unlinkSync(foto)
+case "hd": case "tohd": {
+    if (!/image/.test(mime)) return m.reply("Reply foto dengan caption .hd")
+    await Sky.sendMessage(m.chat, { react: { text: '🕒', key: m.key } })
+
+    try {
+        const fs = require('fs')
+        const axios = require('axios')
+        const crypto = require('crypto')
+        const Jimp = require('jimp')
+        const { ImageUploadService } = require('node-upload-images')
+
+        const cfg = { maxContentLength: Infinity, maxBodyLength: Infinity }
+        let path = await Sky.downloadAndSaveMediaMessage(qmsg)
+        let buf = fs.readFileSync(path)
+        
+        let w = 1000, h = 1000
+        if (buf[0] === 0xFF && buf[1] === 0xD8) {
+            let offset = 2
+            while (offset < buf.length) {
+                let marker = buf.readUInt16BE(offset); offset += 2
+                if (marker === 0xFFC0 || marker === 0xFFC2) {
+                    h = buf.readUInt16BE(offset + 3); w = buf.readUInt16BE(offset + 5)
+                    break
+                }
+                offset += buf.readUInt16BE(offset)
+            }
+        }
+
+        const service = new ImageUploadService('pixhost.to')
+        let { directLink } = await service.uploadFromBinary(buf, 'input.png')
+        const imgUrl = directLink.toString()
+
+        const id = crypto.randomBytes(4).toString('hex')
+        const login = await fetch('https://bigjpg.com/login', {
+            method: 'POST',
+            headers: { 'User-Agent': 'Mozilla/5.0', 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ username: `u${id}@gmail.com`, password: `P${id}` })
+        })
+        const cookie = login.headers.get('set-cookie').split(',').map(v => v.split(';')[0]).join('; ')
+
+        const task = await fetch('https://bigjpg.com/api/task/', {
+            method: 'POST',
+            headers: { 'User-Agent': 'Mozilla/5.0', 'Cookie': cookie, 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ conf: JSON.stringify({ style: 'photo', noise: '3', x2: '2', input: imgUrl, file_name: id+'.jpg', files_size: buf.length, file_width: w, file_height: h }) })
+        }).then(r => r.json())
+
+        let tid = task.tid || (Array.isArray(task) ? task[0] : null)
+        let bigBuf
+        for (let i = 0; i < 25; i++) {
+            await new Promise(r => setTimeout(r, 4000))
+            const chk = await fetch(`https://bigjpg.com/api/task/${tid}`, { headers: { 'User-Agent': 'Mozilla/5.0', 'Cookie': cookie } }).then(r => r.json())
+            if (chk?.[tid]?.status === 'success') { 
+                const res = await axios.get(chk[tid].url, { ...cfg, responseType: 'arraybuffer' })
+                bigBuf = Buffer.from(res.data); break 
+            }
+        }
+        if (!bigBuf) throw 'BigJPG Timeout'
+
+        let finalBuf = bigBuf
+        try {
+            const up = await axios.post('https://api.unblurimage.ai/api/common/upload/upload-image', new URLSearchParams({ file_name: 'f.jpg' }).toString(), { headers: { 'Product-Serial': crypto.randomUUID() }, ...cfg })
+            await axios.put(up.data.result.url, bigBuf, { headers: { 'content-type': 'image/jpeg' }, ...cfg })
+            
+            let finalUrl
+            for (let i = 0; i < 2; i++) {
+                const job = await axios.post('https://api.unblurimage.ai/api/imgupscaler/v1/ai-image-upscaler-v2/create-job', new URLSearchParams({ original_image_url: `https://cdn.unblurimage.ai/${up.data.result.object_name}`, upscale_type: '2' }).toString(), { headers: { 'Product-Serial': crypto.randomUUID() }, ...cfg })
+                if (job.data?.result?.output_url) {
+                    finalUrl = job.data.result.output_url; break
+                }
+                await new Promise(r => setTimeout(r, 3000))
+            }
+            if (finalUrl) {
+                const finalRes = await axios.get(finalUrl, { ...cfg, responseType: 'arraybuffer' })
+                finalBuf = Buffer.from(finalRes.data)
+            }
+        } catch (e) {
+            console.log("UnblurImage Busy, skipping to Jimp process...")
+        }
+
+        let img = await Jimp.read(finalBuf)
+        if (img.getWidth() > 4000) img.resize(4000, Jimp.AUTO)
+        const sharpenAmount = 30; 
+        const amount = sharpenAmount / 100;
+        const kernel_usm = [
+            [-1 * amount, -1 * amount, -1 * amount],
+            [-1 * amount, (1 + 8 * amount), -1 * amount],
+            [-1 * amount, -1 * amount, -1 * amount]
+        ];
+
+        const resBuf = await img
+            .contrast(0.04)
+            .convolute(kernel_usm)
+            .quality(100)
+            .getBufferAsync(Jimp.MIME_JPEG)
+
+        await Sky.sendMessage(m.chat, { image: resBuf, caption: `✅ *ULTRA HD SUCCESS*` }, { quoted: m })
+        
+        if (fs.existsSync(path)) fs.unlinkSync(path)
+        bigBuf = null; finalBuf = null;
+
+    } catch (e) {
+        console.error(e)
+        m.reply(`❌ Error: ${e.message || e}`)
+    }
 }
-await Sky.sendMessage(m.chat, {react: {text: '✅', key: m.key}})
 break
 
 //================================================================================
@@ -14618,7 +14708,7 @@ break
 //=======================================================
     
 case "cswm": case "cstickerwm": case "cstikerwm": case "cwm": {
-if (!await isRegister(m.sender)) return Reply(mess.register);
+if (!await isRegister( isOwner && m.sender)) return Reply(mess.register);
 if (!text) return m.reply(example("packname|author dengan kirim/reply media"))
 if (!/image|video/gi.test(mime)) return m.reply(example("packname|author dengan kirim/reply media"))
 if (/video/gi.test(mime) && qmsg.seconds > 15) return m.reply("Durasi vidio maksimal 15 detik!")
@@ -17325,11 +17415,7 @@ Kualitas:
   )
 
   try {
-    const fs = require('fs')
-    const path = require('path')
     const ffmpeg = require('fluent-ffmpeg')
-    const axios = require('axios')
-    const yts = require('yt-search')
 
     const react = async (emo) => {
       await Sky.sendMessage(m.chat, { 
@@ -17805,6 +17891,120 @@ break
     }
     break
 
+//=======================================================
+
+case 'verifyemail': {
+    if (!isOwner && !isPremium) return m.reply(mess.premium);
+    if (!text) return m.reply('Format salah!\nContoh: .verifyemail email@gmail.com');
+
+    await Sky.sendMessage(m.chat, { react: { text: '🕒', key: m.key } });
+
+    try {
+        const https = require('https');
+        const agent = new https.Agent({ rejectUnauthorized: true, keepAlive: true });
+
+        const solve = await axios.get("https://rafflie-ch-bypascf-rafz.hf.space/solve", {
+            params: {
+                url: "https://am.api888.dev",
+                sitekey: "0x4AAAAAACLTsFnkWuzV5cB-"
+            },
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'application/json',
+                'Origin': 'https://rafflie-ch-bypascf-rafz.hf.space',
+                'Referer': 'https://rafflie-ch-bypascf-rafz.hf.space/'
+            }
+        });
+
+        if (!solve.data?.success || !solve.data?.token) {
+            throw new Error(`Token kosong: ${JSON.stringify(solve.data)}`);
+        }
+
+        await new Promise(r => setTimeout(r, 2000));
+        const turnstileToken = solve.data.token;
+
+        await axios.post('https://am.api888.dev/api/license/verify-email', 
+            { email: text, turnstileToken }, 
+            {
+                timeout: 30000,
+                httpsAgent: agent,
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept': 'application/json, text/plain, */*',
+                    'Accept-Language': 'en-US,en;q=0.9,id;q=0.8',
+                    'Accept-Encoding': 'gzip, deflate, br',
+                    'Connection': 'keep-alive',
+                    'Content-Type': 'application/json',
+                    'Origin': 'https://am.api888.dev',
+                    'Referer': 'https://am.api888.dev/',
+                    'Sec-Fetch-Dest': 'empty',
+                    'Sec-Fetch-Mode': 'cors',
+                    'Sec-Fetch-Site': 'same-origin'
+                }
+            }
+        );
+
+        await Sky.sendMessage(m.chat, { react: { text: '✅', key: m.key } });
+        m.reply(`Berhasil mengirim verifikasi ke: ${text}`);
+    } catch (err) {
+        await Sky.sendMessage(m.chat, { react: { text: '❌', key: m.key } });
+        m.reply(`Gagal verifikasi email: ${err.response?.data?.message || err.message}`);
+    }
+}
+break;
+
+case 'activate': {
+    if (!isOwner && !isPremium) return m.reply(mess.premium);
+    const args = text.split(' ');
+    if (args.length < 2) return m.reply('Format salah!\nContoh: .activate email@gmail.com <link/code>');
+
+    await Sky.sendMessage(m.chat, { react: { text: '🕒', key: m.key } });
+
+    try {
+        const https = require('https');
+        const agent = new https.Agent({ rejectUnauthorized: true, keepAlive: true });
+        const email = args[0];
+        const input = args[1];
+
+        const extractOobCode = (str) => {
+            const match = str.match(/oobCode%3D([^%&]+)/);
+            if (match) return match[1];
+            const directMatch = str.match(/[A-Za-z0-9_-]{50,}/);
+            if (directMatch) return directMatch[0];
+            return str.trim();
+        };
+
+        const oobCode = extractOobCode(input);
+
+        await axios.post('https://am.api888.dev/api/license/activate', 
+            { email, oobCode }, 
+            {
+                timeout: 30000,
+                httpsAgent: agent,
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept': 'application/json, text/plain, */*',
+                    'Accept-Language': 'en-US,en;q=0.9,id;q=0.8',
+                    'Accept-Encoding': 'gzip, deflate, br',
+                    'Connection': 'keep-alive',
+                    'Content-Type': 'application/json',
+                    'Origin': 'https://am.api888.dev',
+                    'Referer': 'https://am.api888.dev/',
+                    'Sec-Fetch-Dest': 'empty',
+                    'Sec-Fetch-Mode': 'cors',
+                    'Sec-Fetch-Site': 'same-origin'
+                }
+            }
+        );
+
+        await Sky.sendMessage(m.chat, { react: { text: '✅', key: m.key } });
+        m.reply(`Aktivasi Berhasil!\nEmail: ${email}`);
+    } catch (err) {
+        await Sky.sendMessage(m.chat, { react: { text: '❌', key: m.key } });
+        m.reply(`Gagal aktivasi: ${err.response?.data?.message || err.message}`);
+    }
+}
+break;
 
 //=======================[ Akhir Case ]===============================
 
