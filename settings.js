@@ -74,6 +74,15 @@ ovo: "https://img100.pixhost.to/images/667/540082774_skyzopedia.jpg",
 gopay: "https://img100.pixhost.to/images/667/540083275_skyzopedia.jpg", 
 qris: "https://img2.pixhost.to/images/7405/717953643_rafzbot.jpg"
 }
+// Settings Audio Url
+global.audio = {
+    1: "https://files.catbox.moe/3pl2cx.mp3",
+    2: "https://files.catbox.moe/xgezaf.mp3",
+    3: "https://files.catbox.moe/0i6vgt.mp3",
+    4: "https://files.catbox.moe/t1hdxs.mp3",
+    5: "https://files.catbox.moe/vxeplp.mp3",
+    6: "https://files.catbox.moe/i576hx.mp3"
+};
 
 // Settings Api Panel Pterodactyl
 global.egg = "15" // Egg ID
