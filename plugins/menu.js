@@ -1,7 +1,11 @@
 const fs = require("fs")
 const os = require('os');
 const path = require('path');
+const axios = require('axios');
 const namaFilePendaftaran = path.join(__dirname, '..', 'library', 'database', 'daftar.json');
+const listAudio = Object.values(global.audio);
+const randomAudio = listAudio[Math.floor(Math.random() * listAudio.length)];
+
 
 async function isRegister(sender) {
   try {
@@ -404,9 +408,13 @@ sourceUrl: 'https://whatsapp.com/channel/0029Vb9R8pgAzNbzE3K8QP39',
 mediatype: 1,
 renderLargerThumbnail: false
 }}}, {quoted: qtext})
+    
+await Sky.sendMessage(m.chat, { 
+        audio: {url :randomAudio}, 
+        mimetype: 'audio/mpeg',
+        ptt: false 
+    }, { quoted: m });
 }
-
-
 handler.command = ["menu"]
 
 module.exports = handler
