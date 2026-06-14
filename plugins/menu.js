@@ -395,7 +395,7 @@ Di situ berbagi berbagai kebutuhan ngedit di AM seperti CC,Preset 5MB/XML, Dll
 
 
 
-await Sky.sendMessage(m.chat, { image: { url: `https://img12.pixhost.to/images/939/576388077_rafzbot.jpg` }, caption: teksnya, mentions: [m.sender, global.owner+"@s.whatsapp.net"], contextInfo: {
+await Sky.sendMessage(m.chat, { image: { url: global.image.menu }, caption: teksnya, mentions: [m.sender, global.owner+"@s.whatsapp.net"], contextInfo: {
 isForwarded: true, 
 forwardingScore: 9999999999999, 
 businessMessageForwardInfo: { businessOwnerJid: global.owner+"@s.whatsapp.net" }, forwardedNewsletterMessageInfo: { newsletterName: `${botname}`, newsletterJid: global.idSaluran }, 
