@@ -30,7 +30,7 @@
     "@hapi/boom": "^10.0.0",
     "@vitalets/google-translate-api": "latest",
     "@vreden/youtube_scraper": "latest",
-    "@whiskeysockets/baileys": "github:Rafflie-CH/Baileys",
+    "@whiskeysockets/baileys": "github:Rafflie-CH/Baileys2",
     "api-dylux": "^1.8.5",
     "archiver": "^7.0.1",
     "awesome-phonenumber": "^4.4.0",
