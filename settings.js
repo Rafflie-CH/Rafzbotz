@@ -66,23 +66,36 @@ global.gopay = "Tidak Tersedia"
 
 // Settings Image Url
 global.image = {
-menu: "https://img101.pixhost.to/images/77/546441106_skyzopedia.jpg", 
-reply: "https://img101.pixhost.to/images/77/546441106_skyzopedia.jpg", 
-logo: "https://img101.pixhost.to/images/77/546441106_skyzopedia.jpg", 
-dana: "https://img100.pixhost.to/images/667/540082364_skyzopedia.jpg", 
-ovo: "https://img100.pixhost.to/images/667/540082774_skyzopedia.jpg", 
-gopay: "https://img100.pixhost.to/images/667/540083275_skyzopedia.jpg", 
-qris: "https://img2.pixhost.to/images/7405/717953643_rafzbot.jpg"
+menu: "https://img101.pixhost.cc/images/77/546441106_skyzopedia.jpg", 
+reply: "https://img101.pixhost.cc/images/77/546441106_skyzopedia.jpg", 
+logo: "https://img101.pixhost.cc/images/77/546441106_skyzopedia.jpg", 
+dana: "https://img100.pixhost.cc/images/667/540082364_skyzopedia.jpg", 
+ovo: "https://img100.pixhost.cc/images/667/540082774_skyzopedia.jpg", 
+gopay: "https://img100.pixhost.cc/images/667/540083275_skyzopedia.jpg", 
+qris: "https://img2.pixhost.cc/images/7405/717953643_rafzbot.jpg"
 }
 // Settings Audio Url
-global.audio = {
-    1: "https://files.catbox.moe/3pl2cx.mp3",
-    2: "https://files.catbox.moe/xgezaf.mp3",
-    3: "https://files.catbox.moe/0i6vgt.mp3",
-    4: "https://files.catbox.moe/t1hdxs.mp3",
-    5: "https://files.catbox.moe/vxeplp.mp3",
-    6: "https://files.catbox.moe/i576hx.mp3"
-};
+    global.audio = {
+        1: "https://files.catbox.moe/3pl2cx.mp3",
+        2: "https://files.catbox.moe/xgezaf.mp3",
+        3: "https://files.catbox.moe/0i6vgt.mp3",
+        4: "https://files.catbox.moe/t1hdxs.mp3",
+        5: "https://files.catbox.moe/vxeplp.mp3",
+        6: "https://files.catbox.moe/i576hx.mp3",
+        7: "https://files.catbox.moe/7te9xy.mp3",
+        8: "https://files.catbox.moe/4t8i8h.mp3",
+        9: "https://files.catbox.moe/3o6ila.mp3",
+        10: "https://files.catbox.moe/1dyxif.mp3",
+        11: "https://files.catbox.moe/g8azeo.mp3",
+        12: "https://files.catbox.moe/1ybbsa.mp3",
+        13: "https://files.catbox.moe/07gpif.mp3",
+        14: "https://files.catbox.moe/6q6spg.mp3",
+        15: "https://files.catbox.moe/9m4j6q.mp3",
+        16: "https://files.catbox.moe/6of79p.mp3",
+        17: "https://files.catbox.moe/tto94f.mp3",
+        18: "https://files.catbox.moe/671kb2.mp3",
+        19: "https://files.catbox.moe/2dwg6e.mp3"
+    };
 
 // Settings Api Panel Pterodactyl
 global.egg = "15" // Egg ID
